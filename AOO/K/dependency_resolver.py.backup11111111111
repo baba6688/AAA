@@ -1,0 +1,1064 @@
+"""
+依赖解析器
+负责分析和解析模块间的依赖关系，支持循环依赖检测、依赖注入和依赖图分析
+提供智能的依赖解决策略和冲突处理机制
+"""
+
+import inspect
+import logging
+import time
+import threading
+from typing import Dict, List, Any, Optional, Set, Tuple, Callable, Union
+from enum import Enum
+from dataclasses import dataclass, asdict
+from collections import defaultdict, deque
+import graphlib  # Python 3.9+ 用于拓扑排序
+import networkx as nx  # 可选，用于高级图分析
+from concurrent.futures import ThreadPoolExecutor, Future
+class ResolutionStrategy(Enum):
+    """依赖解析策略枚举"""
+    STRICT = "strict"           # 严格模式，任何依赖不满足即失败
+    LENIENT = "lenient"         # 宽松模式，忽略可选依赖
+    LAZY = "lazy"               # 懒加载模式，运行时解析
+    EAGER = "eager"             # 急切模式，启动时解析所有依赖
+    OPTIMISTIC = "optimistic"   # 乐观模式，假设依赖可用
+
+class DependencyType(Enum):
+    """依赖类型枚举"""
+    CONSTRUCTOR = "constructor"  # 构造函数依赖
+    PROPERTY = "property"       # 属性依赖
+    METHOD = "method"           # 方法依赖
+    CONFIGURATION = "config"    # 配置依赖
+    SERVICE = "service"         # 服务依赖
+    EVENT = "event"             # 事件依赖
+
+class ResolutionStatus(Enum):
+    """解析状态枚举"""
+    PENDING = "pending"
+    RESOLVED = "resolved"
+    PARTIAL = "partial"
+    FAILED = "failed"
+    CIRCULAR = "circular"
+    CONFLICT = "conflict"
+
+@dataclass
+class DependencyNode:
+    """依赖节点数据类"""
+    name: str
+    type: DependencyType
+    required: bool
+    multiple: bool
+    interface: Optional[str]
+    implementation: Optional[str]
+    qualifier: Optional[str]
+    order: int
+    metadata: Dict[str, Any]
+
+@dataclass
+class ResolutionResult:
+    """解析结果数据类"""
+    node: DependencyNode
+    status: ResolutionStatus
+    candidates: List[str]
+    selected: Optional[str]
+    error: Optional[str]
+    resolution_time: float
+    dependencies: List['ResolutionResult']
+
+@dataclass
+class DependencyGraph:
+    """依赖图数据类"""
+    nodes: Dict[str, DependencyNode]
+    edges: Dict[str, Set[str]]
+    reverse_edges: Dict[str, Set[str]]
+    cycles: List[List[str]]
+
+class DependencyResolver:
+    """依赖解析器 - 生产环境级别实现"""
+    
+    def __init__(self, registry, config_manager=None):
+        self.registry = registry
+        self.config_manager = config_manager
+        
+        # 解析状态和缓存
+        self._resolution_cache = {}
+        self._dependency_graphs = {}
+        self._resolution_strategy = ResolutionStrategy.STRICT
+        self._circular_dependency_cache = {}
+        
+        # 线程安全
+        self._resolution_lock = threading.RLock()
+        self._graph_lock = threading.RLock()
+        
+        # 配置
+        self.enable_circular_detection = True
+        self.enable_dependency_caching = True
+        self.max_resolution_depth = 10
+        self.parallel_resolution = True
+        self.auto_resolve_conflicts = True
+        self.default_timeout = 30.0
+        
+        # 统计和监控
+        self._resolution_stats = defaultdict(int)
+        self._performance_stats = {
+            'total_resolutions': 0,
+            'successful_resolutions': 0,
+            'failed_resolutions': 0,
+            'average_resolution_time': 0.0,
+            'cache_hit_rate': 0.0,
+            'start_time': time.time()
+        }
+        
+        # 事件回调
+        self._pre_resolution_callbacks = []
+        self._post_resolution_callbacks = []
+        self._resolution_failure_callbacks = []
+        
+        # 解析器扩展
+        self._custom_resolvers = {}
+        
+        # 日志
+        self.logger = logging.getLogger('AOO.Resolver')
+        
+        # 初始化
+        self._load_config()
+    
+    def _load_config(self):
+        """加载配置"""
+        if self.config_manager:
+            try:
+                resolver_config = self.config_manager.get_section('dependency_resolver') or {}
+                self.enable_circular_detection = resolver_config.get('enable_circular_detection', True)
+                self.enable_dependency_caching = resolver_config.get('enable_dependency_caching', True)
+                self.max_resolution_depth = resolver_config.get('max_resolution_depth', 10)
+                self.parallel_resolution = resolver_config.get('parallel_resolution', True)
+                self.auto_resolve_conflicts = resolver_config.get('auto_resolve_conflicts', True)
+                self.default_timeout = resolver_config.get('default_timeout', 30.0)
+                
+                strategy_str = resolver_config.get('resolution_strategy', 'strict')
+                self._resolution_strategy = ResolutionStrategy(strategy_str)
+            except Exception as e:
+                self.logger.warning(f"加载依赖解析器配置失败: {e}")
+    
+    def set_resolution_strategy(self, strategy: ResolutionStrategy):
+        """设置解析策略"""
+        self._resolution_strategy = strategy
+        self.logger.info(f"依赖解析策略设置为: {strategy.value}")
+    
+    def analyze_dependencies(self, class_info: Dict[str, Any]) -> List[DependencyNode]:
+        """
+        分析类的依赖关系
+        
+        Args:
+            class_info: 类信息字典
+            
+        Returns:
+            List[DependencyNode]: 依赖节点列表
+        """
+        dependencies = []
+        # 安全获取类对象 - 兼容字典和ClassInfo对象
+        if hasattr(class_info, 'get') and callable(getattr(class_info, 'get')):
+            cls = class_info.get('class_object')
+        else:
+            cls = getattr(class_info, 'class_object', None)
+        
+        if not cls or not hasattr(cls, '__init__'):
+            return dependencies
+        
+        try:
+            # 分析构造函数
+            constructor_deps = self._analyze_constructor_dependencies(cls, class_info)
+            dependencies.extend(constructor_deps)
+            
+            # 分析属性依赖
+            property_deps = self._analyze_property_dependencies(cls, class_info)
+            dependencies.extend(property_deps)
+            
+            # 分析方法依赖
+            method_deps = self._analyze_method_dependencies(cls, class_info)
+            dependencies.extend(method_deps)
+            
+            # 分析配置依赖
+            config_deps = self._analyze_configuration_dependencies(cls, class_info)
+            dependencies.extend(config_deps)
+            
+        except Exception as e:
+            self.logger.error(f"分析依赖关系失败 {class_info.get('class_name', 'unknown')}: {e}")
+        
+        return dependencies
+    
+    def _analyze_constructor_dependencies(self, cls, class_info: Dict[str, Any]) -> List[DependencyNode]:
+        """分析构造函数依赖"""
+        dependencies = []
+        
+        try:
+            init_signature = inspect.signature(cls.__init__)
+            param_index = 0
+            
+            for param_name, param in init_signature.parameters.items():
+                if param_name in ['self', 'args', 'kwargs']:
+                    continue
+                
+                # 确定依赖类型和必需性
+                required = param.default == inspect.Parameter.empty
+                multiple = param.kind == param.VAR_KEYWORD
+                
+                # 提取类型信息
+                interface = None
+                implementation = None
+                qualifier = None
+                
+                if param.annotation != inspect.Parameter.empty:
+                    interface = self._extract_type_name(param.annotation)
+                
+                # 从参数名推断
+                if not interface and param_name.endswith('_service'):
+                    interface = param_name[:-8].title() + 'Service'
+                elif not interface and param_name.endswith('_manager'):
+                    interface = param_name[:-8].title() + 'Manager'
+                
+                # 创建依赖节点
+                dependency_node = DependencyNode(
+                    name=param_name,
+                    type=DependencyType.CONSTRUCTOR,
+                    required=required,
+                    multiple=multiple,
+                    interface=interface,
+                    implementation=implementation,
+                    qualifier=qualifier,
+                    order=param_index,
+                    metadata={
+                        'parameter_name': param_name,
+                        'parameter_kind': param.kind.name,
+                        'has_annotation': param.annotation != inspect.Parameter.empty,
+                        'annotation_type': str(param.annotation) if param.annotation != inspect.Parameter.empty else None
+                    }
+                )
+                
+                dependencies.append(dependency_node)
+                param_index += 1
+                
+        except (ValueError, TypeError) as e:
+            self.logger.warning(f"分析构造函数依赖失败 {cls.__name__}: {e}")
+        
+        return dependencies
+    
+    def _analyze_property_dependencies(self, cls, class_info: Dict[str, Any]) -> List[DependencyNode]:
+        """分析属性依赖"""
+        dependencies = []
+        
+        try:
+            # 检查类属性
+            for attr_name, attr_value in cls.__dict__.items():
+                if (not attr_name.startswith('_') and 
+                    isinstance(attr_value, property) and
+                    hasattr(attr_value.fget, '__annotations__')):
+                    
+                    # 分析属性的类型注解
+                    annotations = getattr(attr_value.fget, '__annotations__', {})
+                    if 'return' in annotations:
+                        interface = self._extract_type_name(annotations['return'])
+                        
+                        dependency_node = DependencyNode(
+                            name=f"property_{attr_name}",
+                            type=DependencyType.PROPERTY,
+                            required=False,  # 属性依赖通常不是强制的
+                            multiple=False,
+                            interface=interface,
+                            implementation=None,
+                            qualifier=attr_name,
+                            order=len(dependencies),
+                            metadata={
+                                'property_name': attr_name,
+                                'annotation_type': str(annotations['return'])
+                            }
+                        )
+                        
+                        dependencies.append(dependency_node)
+                        
+        except Exception as e:
+            self.logger.warning(f"分析属性依赖失败 {cls.__name__}: {e}")
+        
+        return dependencies
+    
+    def _analyze_method_dependencies(self, cls, class_info: Dict[str, Any]) -> List[DependencyNode]:
+        """分析方法依赖"""
+        dependencies = []
+        
+        try:
+            # 检查类方法（排除魔术方法）
+            for method_name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
+                if method_name.startswith('_') and not method_name.startswith('__'):
+                    continue
+                
+                # 分析方法参数
+                method_signature = inspect.signature(method)
+                for param_name, param in method_signature.parameters.items():
+                    if param_name == 'self':
+                        continue
+                    
+                    # 只关注有类型注解的参数
+                    if param.annotation != inspect.Parameter.empty:
+                        interface = self._extract_type_name(param.annotation)
+                        
+                        dependency_node = DependencyNode(
+                            name=f"method_{method_name}_{param_name}",
+                            type=DependencyType.METHOD,
+                            required=param.default == inspect.Parameter.empty,
+                            multiple=param.kind == param.VAR_KEYWORD,
+                            interface=interface,
+                            implementation=None,
+                            qualifier=f"{method_name}.{param_name}",
+                            order=len(dependencies),
+                            metadata={
+                                'method_name': method_name,
+                                'parameter_name': param_name,
+                                'annotation_type': str(param.annotation),
+                                'parameter_kind': param.kind.name
+                            }
+                        )
+                        
+                        dependencies.append(dependency_node)
+                        
+        except Exception as e:
+            self.logger.warning(f"分析方法依赖失败 {cls.__name__}: {e}")
+        
+        return dependencies
+    
+    def _analyze_configuration_dependencies(self, cls, class_info: Dict[str, Any]) -> List[DependencyNode]:
+        """分析配置依赖"""
+        dependencies = []
+        
+        try:
+            # 检查是否有配置相关的属性或方法
+            if hasattr(cls, 'get_config_section'):
+                config_section = cls.get_config_section()
+                if config_section:
+                    dependency_node = DependencyNode(
+                        name=f"config_{config_section}",
+                        type=DependencyType.CONFIGURATION,
+                        required=True,
+                        multiple=False,
+                        interface=None,
+                        implementation=None,
+                        qualifier=config_section,
+                        order=0,
+                        metadata={
+                            'config_section': config_section,
+                            'config_source': 'class_method'
+                        }
+                    )
+                    dependencies.append(dependency_node)
+            
+            # 检查构造函数中的配置参数
+            if hasattr(cls, '__init__'):
+                init_signature = inspect.signature(cls.__init__)
+                for param_name, param in init_signature.parameters.items():
+                    if param_name in ['config', 'configuration', 'settings']:
+                        dependency_node = DependencyNode(
+                            name=f"config_{param_name}",
+                            type=DependencyType.CONFIGURATION,
+                            required=param.default == inspect.Parameter.empty,
+                            multiple=False,
+                            interface=None,
+                            implementation=None,
+                            qualifier=param_name,
+                            order=len(dependencies),
+                            metadata={
+                                'parameter_name': param_name,
+                                'config_source': 'constructor'
+                            }
+                        )
+                        dependencies.append(dependency_node)
+                        
+        except Exception as e:
+            self.logger.warning(f"分析配置依赖失败 {cls.__name__}: {e}")
+        
+        return dependencies
+    
+    def _extract_type_name(self, annotation) -> Optional[str]:
+        """从类型注解中提取类型名称"""
+        try:
+            if hasattr(annotation, '__name__'):
+                return annotation.__name__
+            elif hasattr(annotation, '_name'):
+                return annotation._name
+            elif hasattr(annotation, '__origin__'):
+                # 处理泛型类型
+                origin = annotation.__origin__
+                if hasattr(origin, '__name__'):
+                    return origin.__name__
+            return str(annotation)
+        except:
+            return None
+    
+    def resolve_dependencies(self, class_name: str, depth: int = 0) -> List[ResolutionResult]:
+        """
+        解析类的所有依赖
+        
+        Args:
+            class_name: 类名
+            depth: 当前解析深度
+            
+        Returns:
+            List[ResolutionResult]: 解析结果列表
+        """
+        # 检查缓存
+        cache_key = f"{class_name}_{depth}"
+        if (self.enable_dependency_caching and 
+            cache_key in self._resolution_cache and
+            depth < self.max_resolution_depth):
+            self._performance_stats['cache_hit_rate'] = (
+                self._performance_stats.get('cache_hits', 0) / 
+                self._performance_stats.get('cache_requests', 1)
+            )
+            return self._resolution_cache[cache_key]
+        
+        start_time = time.time()
+        
+        with self._resolution_lock:
+            # 检查递归深度
+            if depth >= self.max_resolution_depth:
+                self.logger.warning(f"达到最大解析深度: {class_name} (深度: {depth})")
+                return []
+            
+            # 获取类信息
+            class_info = self.registry.get_class(class_name)
+            if not class_info:
+                self.logger.error(f"类未找到: {class_name}")
+                return []
+            
+            # 分析依赖
+            dependency_nodes = self.analyze_dependencies(class_info)
+            resolution_results = []
+            
+            # 执行预解析回调
+            self._execute_pre_resolution_callbacks(class_name, dependency_nodes)
+            
+            # 并行或串行解析依赖
+            if self.parallel_resolution and len(dependency_nodes) > 1:
+                resolution_results = self._resolve_dependencies_parallel(
+                    class_name, dependency_nodes, depth
+                )
+            else:
+                resolution_results = self._resolve_dependencies_serial(
+                    class_name, dependency_nodes, depth
+                )
+            
+            # 更新统计
+            resolution_time = time.time() - start_time
+            self._update_performance_stats(resolution_results, resolution_time)
+            
+            # 执行后解析回调
+            self._execute_post_resolution_callbacks(class_name, resolution_results)
+            
+            # 缓存结果
+            if self.enable_dependency_caching:
+                self._resolution_cache[cache_key] = resolution_results
+            
+            return resolution_results
+    
+    def _resolve_dependencies_serial(self, class_name: str, dependencies: List[DependencyNode], depth: int) -> List[ResolutionResult]:
+        """串行解析依赖"""
+        results = []
+        
+        for dependency in dependencies:
+            try:
+                result = self._resolve_single_dependency(class_name, dependency, depth)
+                results.append(result)
+            except Exception as e:
+                self.logger.error(f"解析依赖失败 {class_name}.{dependency.name}: {e}")
+                
+                # 创建失败结果
+                failed_result = ResolutionResult(
+                    node=dependency,
+                    status=ResolutionStatus.FAILED,
+                    candidates=[],
+                    selected=None,
+                    error=str(e),
+                    resolution_time=0.0,
+                    dependencies=[]
+                )
+                results.append(failed_result)
+                
+                # 执行失败回调
+                self._execute_resolution_failure_callbacks(class_name, dependency, e)
+        
+        return results
+    
+    def _resolve_dependencies_parallel(self, class_name: str, dependencies: List[DependencyNode], depth: int) -> List[ResolutionResult]:
+        """并行解析依赖"""
+        results = []
+        futures = {}
+        
+        with ThreadPoolExecutor(max_workers=min(len(dependencies), 4)) as executor:
+            # 提交所有依赖解析任务
+            for dependency in dependencies:
+                future = executor.submit(self._resolve_single_dependency, class_name, dependency, depth)
+                futures[future] = dependency
+            
+            # 收集结果
+            for future in futures:
+                dependency = futures[future]
+                try:
+                    result = future.result(timeout=self.default_timeout)
+                    results.append(result)
+                except Exception as e:
+                    self.logger.error(f"并行解析依赖失败 {class_name}.{dependency.name}: {e}")
+                    
+                    failed_result = ResolutionResult(
+                        node=dependency,
+                        status=ResolutionStatus.FAILED,
+                        candidates=[],
+                        selected=None,
+                        error=str(e),
+                        resolution_time=0.0,
+                        dependencies=[]
+                    )
+                    results.append(failed_result)
+                    
+                    self._execute_resolution_failure_callbacks(class_name, dependency, e)
+        
+        return results
+    
+    def _resolve_single_dependency(self, class_name: str, dependency: DependencyNode, depth: int) -> ResolutionResult:
+        """解析单个依赖"""
+        start_time = time.time()
+        
+        try:
+            # 查找候选实现
+            candidates = self._find_candidate_implementations(dependency)
+            
+            if not candidates:
+                # 没有找到候选实现
+                if dependency.required:
+                    error_msg = f"必需依赖未找到: {dependency.name} (接口: {dependency.interface})"
+                    
+                    if self._resolution_strategy == ResolutionStrategy.STRICT:
+                        raise ValueError(error_msg)
+                    elif self._resolution_strategy == ResolutionStrategy.LENIENT:
+                        self.logger.warning(error_msg)
+                        status = ResolutionStatus.PARTIAL
+                    else:
+                        status = ResolutionStatus.PARTIAL
+                else:
+                    status = ResolutionStatus.RESOLVED  # 可选依赖可以没有实现
+            else:
+                # 选择最佳实现
+                selected = self._select_best_candidate(candidates, dependency)
+                status = ResolutionStatus.RESOLVED
+                
+                # 递归解析选中依赖的依赖
+                nested_dependencies = []
+                if depth < self.max_resolution_depth - 1:
+                    nested_dependencies = self.resolve_dependencies(selected, depth + 1)
+            
+            resolution_time = time.time() - start_time
+            
+            result = ResolutionResult(
+                node=dependency,
+                status=status,
+                candidates=candidates,
+                selected=selected if status == ResolutionStatus.RESOLVED else None,
+                error=None,
+                resolution_time=resolution_time,
+                dependencies=nested_dependencies if status == ResolutionStatus.RESOLVED else []
+            )
+            
+            return result
+            
+        except Exception as e:
+            resolution_time = time.time() - start_time
+            
+            result = ResolutionResult(
+                node=dependency,
+                status=ResolutionStatus.FAILED,
+                candidates=[],
+                selected=None,
+                error=str(e),
+                resolution_time=resolution_time,
+                dependencies=[]
+            )
+            
+            raise
+    
+    def _find_candidate_implementations(self, dependency: DependencyNode) -> List[str]:
+        """查找候选实现"""
+        candidates = []
+        
+        # 根据依赖类型采用不同的查找策略
+        if dependency.type == DependencyType.CONFIGURATION:
+            # 配置依赖不需要类实现
+            return []
+        
+        elif dependency.interface:
+            # 根据接口名查找
+            interface_name = dependency.interface
+            
+            # 在注册表中查找实现该接口的类
+            all_classes = self.registry.get_discoverable_classes()
+            for class_info in all_classes:
+                class_name = class_info.get('class_name')
+                
+                # 检查类名匹配
+                if class_name == interface_name:
+                    candidates.append(class_name)
+                    continue
+                
+                # 检查基类匹配
+                bases = class_info.get('bases', [])
+                if interface_name in bases:
+                    candidates.append(class_name)
+                    continue
+                
+                # 检查是否实现了接口
+                cls = class_info.get('class_object')
+                if cls and self._implements_interface(cls, interface_name):
+                    candidates.append(class_name)
+        
+        else:
+            # 没有指定接口，根据名称查找
+            all_classes = self.registry.get_discoverable_classes()
+            for class_info in all_classes:
+                class_name = class_info.get('class_name')
+                
+                # 简单的名称匹配
+                if (dependency.name.lower() in class_name.lower() or
+                    class_name.lower().endswith(dependency.name.lower())):
+                    candidates.append(class_name)
+        
+        # 去重并排序
+        candidates = list(set(candidates))
+        candidates.sort()
+        
+        return candidates
+    
+    def _implements_interface(self, cls, interface_name: str) -> bool:
+        """检查类是否实现了指定接口"""
+        try:
+            # 检查类名
+            if cls.__name__ == interface_name:
+                return True
+            
+            # 检查基类
+            for base in cls.__bases__:
+                if base.__name__ == interface_name:
+                    return True
+            
+            # 检查MRO（方法解析顺序）
+            for base in cls.__mro__:
+                if base.__name__ == interface_name:
+                    return True
+            
+            return False
+        except:
+            return False
+    
+    def _select_best_candidate(self, candidates: List[str], dependency: DependencyNode) -> str:
+        """选择最佳候选实现"""
+        if not candidates:
+            raise ValueError("没有可用的候选实现")
+        
+        if len(candidates) == 1:
+            return candidates[0]
+        
+        # 多候选情况下的选择策略
+        scored_candidates = []
+        
+        for candidate in candidates:
+            score = 0
+            
+            # 获取候选类信息
+            candidate_info = self.registry.get_class(candidate)
+            if not candidate_info:
+                continue
+            
+            # 评分规则
+            # 1. 名称匹配度
+            if dependency.interface and candidate == dependency.interface:
+                score += 100
+            
+            # 2. 名称包含关系
+            if dependency.name.lower() in candidate.lower():
+                score += 50
+            
+            # 3. 优先级
+            priority = candidate_info.get('priority', 0)
+            score += priority
+            
+            # 4. 服务类型匹配
+            service_type = candidate_info.get('service_type', 'singleton')
+            if service_type == 'singleton':  # 优先选择单例
+                score += 10
+            
+            scored_candidates.append((candidate, score))
+        
+        # 按分数排序
+        scored_candidates.sort(key=lambda x: x[1], reverse=True)
+        
+        # 处理分数相同的情况
+        top_score = scored_candidates[0][1]
+        top_candidates = [candidate for candidate, score in scored_candidates if score == top_score]
+        
+        if len(top_candidates) > 1 and self.auto_resolve_conflicts:
+            # 自动解决冲突：选择第一个
+            self.logger.warning(f"依赖冲突: {dependency.name} 有多个候选 {top_candidates}，选择 {top_candidates[0]}")
+            return top_candidates[0]
+        elif len(top_candidates) > 1:
+            # 无法自动解决冲突
+            raise ValueError(f"依赖冲突: {dependency.name} 有多个候选 {top_candidates}")
+        else:
+            return scored_candidates[0][0]
+    
+    def build_dependency_graph(self, class_name: str) -> DependencyGraph:
+        """
+        构建依赖图
+        
+        Args:
+            class_name: 起始类名
+            
+        Returns:
+            DependencyGraph: 依赖图
+        """
+        with self._graph_lock:
+            # 检查缓存
+            if class_name in self._dependency_graphs:
+                return self._dependency_graphs[class_name]
+            
+            nodes = {}
+            edges = defaultdict(set)
+            reverse_edges = defaultdict(set)
+            
+            # 使用BFS构建依赖图
+            queue = deque([class_name])
+            visited = set([class_name])
+            
+            while queue:
+                current_class = queue.popleft()
+                
+                # 解析当前类的依赖
+                dependencies = self.resolve_dependencies(current_class)
+                
+                # 添加节点
+                if current_class not in nodes:
+                    nodes[current_class] = DependencyNode(
+                        name=current_class,
+                        type=DependencyType.SERVICE,
+                        required=True,
+                        multiple=False,
+                        interface=current_class,
+                        implementation=current_class,
+                        qualifier=None,
+                        order=0,
+                        metadata={}
+                    )
+                
+                # 添加边
+                for dependency_result in dependencies:
+                    if (dependency_result.status == ResolutionStatus.RESOLVED and 
+                        dependency_result.selected):
+                        
+                        dep_class = dependency_result.selected
+                        
+                        # 添加边
+                        edges[current_class].add(dep_class)
+                        reverse_edges[dep_class].add(current_class)
+                        
+                        # 如果依赖类尚未访问，加入队列
+                        if dep_class not in visited:
+                            visited.add(dep_class)
+                            queue.append(dep_class)
+                            
+                        # 添加依赖节点
+                        if dep_class not in nodes:
+                            nodes[dep_class] = DependencyNode(
+                                name=dep_class,
+                                type=DependencyType.SERVICE,
+                                required=True,
+                                multiple=False,
+                                interface=dep_class,
+                                implementation=dep_class,
+                                qualifier=None,
+                                order=0,
+                                metadata={}
+                            )
+            
+            # 检测循环依赖
+            cycles = self._detect_cycles(edges)
+            
+            graph = DependencyGraph(
+                nodes=dict(nodes),
+                edges=dict(edges),
+                reverse_edges=dict(reverse_edges),
+                cycles=cycles
+            )
+            
+            # 缓存结果
+            self._dependency_graphs[class_name] = graph
+            
+            return graph
+    
+    def _detect_cycles(self, edges: Dict[str, Set[str]]) -> List[List[str]]:
+        """检测循环依赖"""
+        if not self.enable_circular_detection:
+            return []
+        
+        # 使用DFS检测循环
+        cycles = []
+        visited = set()
+        recursion_stack = set()
+        
+        def dfs(node: str, path: List[str]):
+            if node in recursion_stack:
+                # 找到循环
+                cycle_start = path.index(node)
+                cycle = path[cycle_start:]
+                if cycle not in cycles:
+                    cycles.append(cycle)
+                return
+            
+            if node in visited:
+                return
+            
+            visited.add(node)
+            recursion_stack.add(node)
+            path.append(node)
+            
+            for neighbor in edges.get(node, set()):
+                dfs(neighbor, path.copy())
+            
+            recursion_stack.remove(node)
+            path.pop()
+        
+        for node in edges:
+            if node not in visited:
+                dfs(node, [])
+        
+        return cycles
+    
+    def get_resolution_order(self, class_name: str) -> List[str]:
+        """
+        获取依赖解析顺序（拓扑排序）
+        
+        Args:
+            class_name: 起始类名
+            
+        Returns:
+            List[str]: 解析顺序列表
+        """
+        graph = self.build_dependency_graph(class_name)
+        
+        try:
+            # 使用Python的拓扑排序
+            sorter = graphlib.TopologicalSorter(graph.edges)
+            order = list(sorter.static_order())
+            return order
+        except graphlib.CycleError as e:
+            self.logger.error(f"存在循环依赖，无法进行拓扑排序: {e}")
+            
+            # 返回基于BFS的顺序作为备选
+            visited = set()
+            order = []
+            queue = deque([class_name])
+            
+            while queue:
+                node = queue.popleft()
+                if node not in visited:
+                    visited.add(node)
+                    order.append(node)
+                    for neighbor in graph.edges.get(node, set()):
+                        if neighbor not in visited:
+                            queue.append(neighbor)
+            
+            return order
+    
+    def validate_dependency_cycle(self, class_name: str) -> bool:
+        """验证依赖循环"""
+        graph = self.build_dependency_graph(class_name)
+        return len(graph.cycles) == 0
+    
+    def add_pre_resolution_callback(self, callback: Callable):
+        """添加预解析回调"""
+        self._pre_resolution_callbacks.append(callback)
+    
+    def add_post_resolution_callback(self, callback: Callable):
+        """添加后解析回调"""
+        self._post_resolution_callbacks.append(callback)
+    
+    def add_resolution_failure_callback(self, callback: Callable):
+        """添加解析失败回调"""
+        self._resolution_failure_callbacks.append(callback)
+    
+    def register_custom_resolver(self, dependency_type: DependencyType, resolver: Callable):
+        """注册自定义解析器"""
+        self._custom_resolvers[dependency_type] = resolver
+    
+    def _execute_pre_resolution_callbacks(self, class_name: str, dependencies: List[DependencyNode]):
+        """执行预解析回调"""
+        for callback in self._pre_resolution_callbacks:
+            try:
+                callback(class_name, dependencies)
+            except Exception as e:
+                self.logger.error(f"预解析回调执行失败: {e}")
+    
+    def _execute_post_resolution_callbacks(self, class_name: str, results: List[ResolutionResult]):
+        """执行后解析回调"""
+        for callback in self._post_resolution_callbacks:
+            try:
+                callback(class_name, results)
+            except Exception as e:
+                self.logger.error(f"后解析回调执行失败: {e}")
+    
+    def _execute_resolution_failure_callbacks(self, class_name: str, dependency: DependencyNode, error: Exception):
+        """执行解析失败回调"""
+        for callback in self._resolution_failure_callbacks:
+            try:
+                callback(class_name, dependency, error)
+            except Exception as e:
+                self.logger.error(f"解析失败回调执行失败: {e}")
+    
+    def _update_performance_stats(self, results: List[ResolutionResult], resolution_time: float):
+        """更新性能统计"""
+        self._performance_stats['total_resolutions'] += 1
+        
+        successful = all(result.status == ResolutionStatus.RESOLVED for result in results)
+        if successful:
+            self._performance_stats['successful_resolutions'] += 1
+        else:
+            self._performance_stats['failed_resolutions'] += 1
+        
+        # 更新平均解析时间
+        total_time = self._performance_stats['average_resolution_time'] * (self._performance_stats['total_resolutions'] - 1)
+        self._performance_stats['average_resolution_time'] = (total_time + resolution_time) / self._performance_stats['total_resolutions']
+    
+    def get_statistics(self) -> Dict[str, Any]:
+        """获取统计信息"""
+        uptime = time.time() - self._performance_stats['start_time']
+        
+        return {
+            'performance': {
+                'uptime': uptime,
+                'total_resolutions': self._performance_stats['total_resolutions'],
+                'successful_resolutions': self._performance_stats['successful_resolutions'],
+                'failed_resolutions': self._performance_stats['failed_resolutions'],
+                'success_rate': (
+                    self._performance_stats['successful_resolutions'] / 
+                    self._performance_stats['total_resolutions'] * 100 
+                    if self._performance_stats['total_resolutions'] > 0 else 0
+                ),
+                'average_resolution_time': self._performance_stats['average_resolution_time'],
+                'resolutions_per_second': self._performance_stats['total_resolutions'] / uptime if uptime > 0 else 0
+            },
+            'cache': {
+                'enabled': self.enable_dependency_caching,
+                'cache_size': len(self._resolution_cache),
+                'graph_cache_size': len(self._dependency_graphs)
+            },
+            'configuration': {
+                'resolution_strategy': self._resolution_strategy.value,
+                'enable_circular_detection': self.enable_circular_detection,
+                'max_resolution_depth': self.max_resolution_depth,
+                'parallel_resolution': self.parallel_resolution,
+                'auto_resolve_conflicts': self.auto_resolve_conflicts
+            }
+        }
+    
+    def clear_cache(self):
+        """清空缓存"""
+        self._resolution_cache.clear()
+        self._dependency_graphs.clear()
+        self._circular_dependency_cache.clear()
+        self.logger.info("依赖解析缓存已清空")
+
+
+class ResolverBuilder:
+    """依赖解析器构建器"""
+    
+    def __init__(self):
+        self._config = {
+            'enable_circular_detection': True,
+            'enable_dependency_caching': True,
+            'max_resolution_depth': 10,
+            'parallel_resolution': True,
+            'auto_resolve_conflicts': True,
+            'default_timeout': 30.0,
+            'resolution_strategy': ResolutionStrategy.STRICT
+        }
+        self._callbacks = {
+            'pre_resolution': [],
+            'post_resolution': [],
+            'failure': []
+        }
+        self._custom_resolvers = {}
+    
+    def set_circular_detection(self, enabled: bool) -> 'ResolverBuilder':
+        """设置循环依赖检测"""
+        self._config['enable_circular_detection'] = enabled
+        return self
+    
+    def set_caching(self, enabled: bool) -> 'ResolverBuilder':
+        """设置缓存"""
+        self._config['enable_dependency_caching'] = enabled
+        return self
+    
+    def set_max_depth(self, depth: int) -> 'ResolverBuilder':
+        """设置最大解析深度"""
+        self._config['max_resolution_depth'] = depth
+        return self
+    
+    def set_parallel_resolution(self, enabled: bool) -> 'ResolverBuilder':
+        """设置并行解析"""
+        self._config['parallel_resolution'] = enabled
+        return self
+    
+    def set_resolution_strategy(self, strategy: ResolutionStrategy) -> 'ResolverBuilder':
+        """设置解析策略"""
+        self._config['resolution_strategy'] = strategy
+        return self
+    
+    def add_pre_resolution_callback(self, callback: Callable) -> 'ResolverBuilder':
+        """添加预解析回调"""
+        self._callbacks['pre_resolution'].append(callback)
+        return self
+    
+    def add_post_resolution_callback(self, callback: Callable) -> 'ResolverBuilder':
+        """添加后解析回调"""
+        self._callbacks['post_resolution'].append(callback)
+        return self
+    
+    def add_failure_callback(self, callback: Callable) -> 'ResolverBuilder':
+        """添加失败回调"""
+        self._callbacks['failure'].append(callback)
+        return self
+    
+    def register_custom_resolver(self, dependency_type: DependencyType, resolver: Callable) -> 'ResolverBuilder':
+        """注册自定义解析器"""
+        self._custom_resolvers[dependency_type] = resolver
+        return self
+    
+    def build(self, registry, config_manager=None) -> DependencyResolver:
+        """构建依赖解析器实例"""
+        resolver = DependencyResolver(registry, config_manager)
+        
+        # 应用配置
+        for key, value in self._config.items():
+            if hasattr(resolver, key):
+                setattr(resolver, key, value)
+            elif key == 'resolution_strategy':
+                resolver.set_resolution_strategy(value)
+        
+        # 注册回调
+        for callback in self._callbacks['pre_resolution']:
+            resolver.add_pre_resolution_callback(callback)
+        
+        for callback in self._callbacks['post_resolution']:
+            resolver.add_post_resolution_callback(callback)
+        
+        for callback in self._callbacks['failure']:
+            resolver.add_resolution_failure_callback(callback)
+        
+        # 注册自定义解析器
+        for dep_type, custom_resolver in self._custom_resolvers.items():
+            resolver.register_custom_resolver(dep_type, custom_resolver)
+        
+        return resolver

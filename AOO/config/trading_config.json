@@ -1,0 +1,214 @@
+{
+  "system_name": "AOO智能量化交易系统",
+  "environment": "production",
+  "version": "2.0.0",
+  "auto_discovery": true,
+  
+  "scanner": {
+    "deep_scan": true,
+    "ignore_dirs": ["__pycache__", ".git", "config", "logs", "tests", "temp", "backup", "data"],
+    "ignore_files": ["__init__.py", "test_", "_test.py", "conftest.py"],
+    "max_file_size": 10485760,
+    "analysis_level": "detailed",
+    "enable_parallel_scan": true,
+    "max_workers": 8,
+    "cache_enabled": true,
+    "cache_ttl": 600,
+    "scan_timeout": 60
+  },
+  
+  "registry": {
+    "auto_resolve_dependencies": true,
+    "enable_version_management": true,
+    "allow_multiple_versions": false,
+    "default_version_constraint": ">=1.0.0",
+    "enable_health_checks": true,
+    "health_check_interval": 30
+  },
+  
+  "dependency_resolver": {
+    "enable_circular_detection": true,
+    "enable_dependency_caching": true,
+    "max_resolution_depth": 15,
+    "parallel_resolution": true,
+    "auto_resolve_conflicts": true,
+    "default_timeout": 45.0,
+    "resolution_strategy": "strict",
+    "enable_advanced_analysis": true
+  },
+  
+  "factory": {
+    "auto_wire_enabled": true,
+    "singleton_by_default": true,
+    "enable_lazy_loading": true,
+    "enable_circular_dependency_detection": true,
+    "circular_dependency_timeout": 30.0,
+    "max_creation_depth": 12,
+    "default_scope": "singleton",
+    "enable_instance_tracking": true,
+    "enable_metrics_collection": true,
+    "cleanup_interval": 300
+  },
+  
+  "lifecycle_manager": {
+    "auto_start_modules": true,
+    "startup_timeout": 120,
+    "shutdown_timeout": 60,
+    "health_check_interval": 30,
+    "enable_health_check": true,
+    "enable_metrics": true,
+    "module_timeout": 30,
+    "retry_attempts": 3,
+    "retry_delay": 5
+  },
+  
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "logs/aoo_system.log",
+    "max_bytes": 10485760,
+    "backup_count": 10,
+    "enable_rotation": true
+  },
+  
+  "database": {
+    "connection_string": "sqlite:///aoo_system.db",
+    "echo": false,
+    "pool_size": 10,
+    "max_overflow": 20,
+    "pool_recycle": 3600,
+    "connect_timeout": 30
+  },
+  
+  "trading": {
+    "default_exchange": "binance",
+    "default_symbol": "BTC/USDT",
+    "timeframe": "1m",
+    "initial_balance": 10000.0,
+    "commission": 0.001,
+    "slippage": 0.001,
+    "risk_per_trade": 0.02,
+    "max_open_positions": 5,
+    "enable_short_selling": true
+  },
+  
+  "exchanges": {
+    "binance": {
+      "api_key": "${BINANCE_API_KEY}",
+      "api_secret": "${BINANCE_API_SECRET}",
+      "sandbox": false,
+      "rate_limit": 1200
+    },
+    "okx": {
+      "api_key": "${OKX_API_KEY}",
+      "api_secret": "${OKX_API_SECRET}",
+      "passphrase": "${OKX_PASSPHRASE}",
+      "sandbox": true,
+      "rate_limit": 600
+    }
+  },
+  
+  "modules": {
+    "A": {
+      "enabled": true,
+      "config": {}
+    },
+    "B": {
+      "enabled": true,
+      "config": {
+        "ai_model": "gpt-4",
+        "max_tokens": 4096,
+        "temperature": 0.7
+      }
+    },
+    "I": {
+      "enabled": true,
+      "config": {
+        "cache_ttl": 300,
+        "max_cache_size": 1000
+      }
+    },
+    "K": {
+      "enabled": true,
+      "config": {
+        "enable_auto_wiring": true,
+        "enable_dependency_injection": true,
+        "scan_interval": 60
+      }
+    }
+  },
+  
+  "performance": {
+    "enable_monitoring": true,
+    "metrics_interval": 60,
+    "enable_profiling": false,
+    "profiling_output": "logs/profiling",
+    "memory_warning_threshold": 0.8,
+    "cpu_warning_threshold": 0.7
+  },
+  
+  "security": {
+    "encryption_key": "${ENCRYPTION_KEY}",
+    "enable_ssl": false,
+    "ssl_cert": "config/ssl/cert.pem",
+    "ssl_key": "config/ssl/key.pem",
+    "allowed_origins": ["http://localhost:3000", "http://127.0.0.1:3000"]
+  },
+  
+  "api": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "enable_swagger": true,
+    "rate_limit": 100,
+    "enable_cors": true,
+    "cors_origins": ["http://localhost:3000"]
+  },
+  
+  "cache": {
+    "enabled": true,
+    "backend": "memory",
+    "redis_host": "localhost",
+    "redis_port": 6379,
+    "redis_db": 0,
+    "default_ttl": 300,
+    "max_memory_mb": 100
+  },
+  
+  "alerts": {
+    "enabled": true,
+    "providers": ["console", "log", "email"],
+    "email": {
+      "smtp_server": "smtp.gmail.com",
+      "smtp_port": 587,
+      "username": "${EMAIL_USERNAME}",
+      "password": "${EMAIL_PASSWORD}",
+      "from_address": "alerts@aoo-system.com"
+    },
+    "critical_events": ["system_error", "trading_error", "connection_lost"]
+  },
+  
+  "backtesting": {
+    "enabled": true,
+    "initial_capital": 10000,
+    "commission": 0.001,
+    "slippage": 0.001,
+    "timeframe": "1m",
+    "warmup_period": 50
+  },
+  
+  "optimization": {
+    "enabled": true,
+    "max_workers": 4,
+    "optimization_method": "genetic",
+    "population_size": 50,
+    "generations": 100
+  },
+  
+  "monitoring": {
+    "enable_prometheus": true,
+    "prometheus_port": 9090,
+    "enable_grafana": false,
+    "grafana_port": 3000,
+    "dashboard_refresh": 30
+  }
+}

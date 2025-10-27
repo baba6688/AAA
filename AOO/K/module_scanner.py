@@ -1,0 +1,787 @@
+"""
+模块扫描器 - 修复版（使用AST分析）
+负责自动发现、分析和注册AOO框架中的所有模块
+支持深度扫描、类分析、依赖检测和性能优化
+"""
+
+import os
+import sys
+import ast
+import time
+import logging
+from typing import Dict, List, Any, Optional, Set
+from pathlib import Path
+from dataclasses import dataclass
+from enum import Enum
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+@dataclass
+class ClassInfo:
+    """类信息数据类"""
+    name: str
+    module: str
+    zone: str
+    file_path: str
+    bases: List[str]
+    docstring: Optional[str]
+    methods: List[str]
+    attributes: List[str]
+    is_abstract: bool
+    is_discoverable: bool
+    priority: int
+    service_type: str
+
+@dataclass
+class ModuleInfo:
+    """模块信息数据类"""
+    zone: str
+    name: str
+    file_path: str
+    classes: List[ClassInfo]
+    imports: List[str]
+    analysis_success: bool
+    error: Optional[str]
+    analysis_time: float
+    file_size: int
+    last_modified: float
+
+class AnalysisLevel(Enum):
+    """分析级别枚举"""
+    QUICK = "quick"        # 快速分析，只检查类定义
+    BASIC = "basic"        # 基础分析，检查类和方法
+    DETAILED = "detailed"  # 详细分析，包括属性和依赖
+    DEEP = "deep"          # 深度分析，完整AST解析
+
+class ModuleScanner:
+    """模块扫描器 - 使用AST分析的生产环境级别实现"""
+    
+    def __init__(self, aoo_root: str, config_manager=None):
+        self.aoo_root = Path(aoo_root).resolve()
+        self.config_manager = config_manager
+        
+        # 配置
+        self.ignore_dirs = {'__pycache__', '.git', 'config', 'logs', 'tests', 'temp', 'backup', 'data'}
+        self.ignore_files = {'__init__.py', 'test_', '_test.py', 'conftest.py'}
+        self.max_file_size = 10 * 1024 * 1024  # 10MB
+        self.analysis_level = AnalysisLevel.DETAILED
+        self.enable_parallel_scan = True
+        self.max_workers = 8
+        self.cache_enabled = True
+        self.scan_timeout = 60  # 秒
+        
+        # 状态和缓存
+        self._scan_cache = {}
+        self._last_scan_time = 0
+        self._cache_ttl = 600  # 10分钟
+        
+        # 性能统计
+        self._scan_stats = {
+            'total_scans': 0,
+            'total_modules': 0,
+            'total_classes': 0,
+            'total_discoverable': 0,
+            'total_errors': 0,
+            'total_scan_time': 0
+        }
+        
+        # 日志
+        self.logger = logging.getLogger('AOO.Scanner')
+        
+        # 加载配置
+        self._load_config()
+    
+    def _load_config(self):
+        """加载配置"""
+        if self.config_manager:
+            try:
+                scanner_config = self.config_manager.get_section('scanner') or {}
+                self.ignore_dirs = set(scanner_config.get('ignore_dirs', self.ignore_dirs))
+                self.ignore_files = set(scanner_config.get('ignore_files', self.ignore_files))
+                self.max_file_size = scanner_config.get('max_file_size', self.max_file_size)
+                self.enable_parallel_scan = scanner_config.get('enable_parallel_scan', self.enable_parallel_scan)
+                self.max_workers = scanner_config.get('max_workers', self.max_workers)
+                self.cache_enabled = scanner_config.get('cache_enabled', self.cache_enabled)
+                self.scan_timeout = scanner_config.get('scan_timeout', self.scan_timeout)
+                
+                analysis_level_str = scanner_config.get('analysis_level', 'detailed')
+                self.analysis_level = AnalysisLevel(analysis_level_str)
+            except Exception as e:
+                self.logger.warning(f"加载扫描器配置失败: {e}")
+    
+    def discover_zones(self) -> List[str]:
+        """发现所有区域目录"""
+        # 扫描所有子目录（全局扫描）
+        zones = [d for d in os.listdir(self.aoo_root) 
+                if os.path.isdir(os.path.join(self.aoo_root, d)) 
+                and not d.startswith('.')
+                and d not in ['__pycache__', 'tests', 'docs', 'logs']]
+        try:
+            for item in self.aoo_root.iterdir():
+                if (item.is_dir() and 
+                    item.name.isalpha() and 
+                    len(item.name) == 1 and
+                    item.name not in self.ignore_dirs):
+                    zones.append(item.name)
+        except Exception as e:
+            self.logger.error(f"发现区域目录失败: {e}")
+        
+        return sorted(zones)
+    
+    def scan_zone(self, zone: str) -> List[str]:
+        """扫描指定区域的模块文件"""
+        zone_path = self.aoo_root / zone
+        if not zone_path.exists():
+            self.logger.warning(f"区域目录不存在: {zone}")
+            return []
+        
+        modules = []
+        try:
+            for py_file in zone_path.glob("*.py"):
+                if (py_file.name not in self.ignore_files and 
+                    not py_file.name.startswith("_") and
+                    py_file.stat().st_size <= self.max_file_size):
+                    modules.append(py_file.stem)
+        except Exception as e:
+            self.logger.error(f"扫描区域 {zone} 失败: {e}")
+        
+        return sorted(modules)
+    
+    def analyze_module(self, zone: str, module_name: str) -> ModuleInfo:
+        """分析模块，提取详细信息 - 修复版"""
+        start_time = time.time()
+        file_path = self.aoo_root / zone / f"{module_name}.py"
+        
+        try:
+            # 获取文件信息
+            file_stat = file_path.stat()
+            file_size = file_stat.st_size
+            last_modified = file_stat.st_mtime
+            
+            # 检查缓存
+            cache_key = f"{zone}.{module_name}"
+            if (self.cache_enabled and 
+                cache_key in self._scan_cache and 
+                self._scan_cache[cache_key]['last_modified'] == last_modified):
+                return self._scan_cache[cache_key]['module_info']
+            
+            # 根据分析级别选择分析方法 - 全部使用AST分析
+            if self.analysis_level == AnalysisLevel.QUICK:
+                module_info = self._analyze_module_quick(zone, module_name, file_path)
+            elif self.analysis_level == AnalysisLevel.BASIC:
+                module_info = self._analyze_module_basic(zone, module_name, file_path)
+            elif self.analysis_level == AnalysisLevel.DETAILED:
+                module_info = self._analyze_module_detailed(zone, module_name, file_path)
+            else:  # DEEP
+                module_info = self._analyze_module_deep(zone, module_name, file_path)
+            
+            # 添加文件信息
+            module_info.file_size = file_size
+            module_info.last_modified = last_modified
+            module_info.analysis_time = time.time() - start_time
+            
+            # 更新缓存
+            if self.cache_enabled:
+                self._scan_cache[cache_key] = {
+                    'module_info': module_info,
+                    'last_modified': last_modified,
+                    'cached_time': time.time()
+                }
+            
+            return module_info
+            
+        except Exception as e:
+            analysis_time = time.time() - start_time
+            self.logger.error(f"分析模块失败 {zone}.{module_name}: {e}")
+            
+            return ModuleInfo(
+                zone=zone,
+                name=module_name,
+                file_path=str(file_path),
+                classes=[],
+                imports=[],
+                analysis_success=False,
+                error=str(e),
+                analysis_time=analysis_time,
+                file_size=0,
+                last_modified=0
+            )
+    
+    def _analyze_module_quick(self, zone: str, module_name: str, file_path: Path) -> ModuleInfo:
+        """快速分析模块 - 只检查类定义"""
+        classes = []
+        
+        try:
+            # 使用AST快速解析
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            tree = ast.parse(content)
+            
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    class_info = ClassInfo(
+                        name=node.name,
+                        module=f"{zone}.{module_name}",
+                        zone=zone,
+                        file_path=str(file_path),
+                        bases=[base.id for base in node.bases if isinstance(base, ast.Name)],
+                        docstring=ast.get_docstring(node),
+                        methods=[],
+                        attributes=[],
+                        is_abstract=False,
+                        is_discoverable=self._is_discoverable_class_quick(node),
+                        priority=0,
+                        service_type="singleton"
+                    )
+                    classes.append(class_info)
+        except Exception as e:
+            self.logger.warning(f"快速分析模块失败 {zone}.{module_name}: {e}")
+        
+        return ModuleInfo(
+            zone=zone,
+            name=module_name,
+            file_path=str(file_path),
+            classes=classes,
+            imports=[],
+            analysis_success=True,
+            error=None,
+            analysis_time=0,
+            file_size=0,
+            last_modified=0
+        )
+    
+    def _analyze_module_basic(self, zone: str, module_name: str, file_path: Path) -> ModuleInfo:
+        """基础分析模块 - 使用AST检查类和方法"""
+        return self._analyze_module_with_ast(zone, module_name, file_path, basic=True)
+    
+    def _analyze_module_detailed(self, zone: str, module_name: str, file_path: Path) -> ModuleInfo:
+        """详细分析模块 - 使用AST包括属性和基础依赖"""
+        return self._analyze_module_with_ast(zone, module_name, file_path, basic=False)
+    
+    def _analyze_module_deep(self, zone: str, module_name: str, file_path: Path) -> ModuleInfo:
+        """深度分析模块 - 使用AST完整解析和依赖分析"""
+        classes = []
+        imports = []
+        
+        try:
+            # 使用AST深度解析
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            tree = ast.parse(content)
+            
+            # 分析导入
+            imports = self._analyze_imports(tree)
+            
+            # 分析类
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    class_info = self._analyze_class_deep(node, zone, module_name, file_path)
+                    classes.append(class_info)
+                    
+        except Exception as e:
+            self.logger.error(f"深度分析模块失败 {zone}.{module_name}: {e}")
+            raise
+        
+        return ModuleInfo(
+            zone=zone,
+            name=module_name,
+            file_path=str(file_path),
+            classes=classes,
+            imports=imports,
+            analysis_success=True,
+            error=None,
+            analysis_time=0,
+            file_size=0,
+            last_modified=0
+        )
+    
+    def _analyze_module_with_ast(self, zone: str, module_name: str, file_path: Path, basic: bool = False) -> ModuleInfo:
+        """使用AST分析模块 - 替代动态导入的安全方案"""
+        classes = []
+        imports = []
+        
+        try:
+            # 使用AST解析
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            tree = ast.parse(content)
+            
+            # 分析导入
+            imports = self._analyze_imports(tree)
+            
+            # 分析类
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    if basic:
+                        class_info = self._analyze_class_basic_ast(node, zone, module_name, file_path)
+                    else:
+                        class_info = self._analyze_class_detailed_ast(node, zone, module_name, file_path)
+                    classes.append(class_info)
+                    
+        except Exception as e:
+            self.logger.error(f"AST分析模块失败 {zone}.{module_name}: {e}")
+            raise
+        
+        return ModuleInfo(
+            zone=zone,
+            name=module_name,
+            file_path=str(file_path),
+            classes=classes,
+            imports=imports,
+            analysis_success=True,
+            error=None,
+            analysis_time=0,
+            file_size=0,
+            last_modified=0
+        )
+    
+    def _analyze_class_basic_ast(self, class_node: ast.ClassDef, zone: str, module_name: str, file_path: Path) -> ClassInfo:
+        """基础分析类（使用AST）"""
+        # 获取基类
+        bases = []
+        for base in class_node.bases:
+            if isinstance(base, ast.Name):
+                bases.append(base.id)
+        
+        # 获取方法
+        methods = []
+        for node in class_node.body:
+            if isinstance(node, ast.FunctionDef):
+                if not node.name.startswith('_'):
+                    methods.append(node.name)
+        
+        return ClassInfo(
+            name=class_node.name,
+            module=f"{zone}.{module_name}",
+            zone=zone,
+            file_path=str(file_path),
+            bases=bases,
+            docstring=ast.get_docstring(class_node),
+            methods=methods,
+            attributes=[],
+            is_abstract=False,
+            is_discoverable=self._is_discoverable_class_quick(class_node),
+            priority=0,
+            service_type="singleton"
+        )
+    
+    def _analyze_class_detailed_ast(self, class_node: ast.ClassDef, zone: str, module_name: str, file_path: Path) -> ClassInfo:
+        """详细分析类（使用AST）"""
+        # 获取基类
+        bases = []
+        for base in class_node.bases:
+            if isinstance(base, ast.Name):
+                bases.append(base.id)
+        
+        # 获取方法
+        methods = []
+        attributes = []
+        
+        for node in class_node.body:
+            if isinstance(node, ast.FunctionDef):
+                if not node.name.startswith('_'):
+                    methods.append(node.name)
+            elif isinstance(node, ast.Assign):
+                # 提取类属性
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and not target.id.startswith('_'):
+                        attributes.append(target.id)
+        
+        return ClassInfo(
+            name=class_node.name,
+            module=f"{zone}.{module_name}",
+            zone=zone,
+            file_path=str(file_path),
+            bases=bases,
+            docstring=ast.get_docstring(class_node),
+            methods=methods,
+            attributes=attributes,
+            is_abstract=False,
+            is_discoverable=self._is_discoverable_class_quick(class_node),
+            priority=0,
+            service_type="singleton"
+        )
+    
+    def _analyze_class_deep(self, class_node: ast.ClassDef, zone: str, module_name: str, file_path: Path) -> ClassInfo:
+        """深度分析类（使用AST）"""
+        # 获取基类
+        bases = []
+        for base in class_node.bases:
+            if isinstance(base, ast.Name):
+                bases.append(base.id)
+        
+        # 获取方法和属性
+        methods = []
+        attributes = []
+        
+        for node in class_node.body:
+            if isinstance(node, ast.FunctionDef):
+                if not node.name.startswith('_'):
+                    methods.append(node.name)
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and not target.id.startswith('_'):
+                        attributes.append(target.id)
+        
+        # 检查是否可发现（通过基类名和装饰器）
+        is_discoverable = self._is_discoverable_class_quick(class_node)
+        
+        return ClassInfo(
+            name=class_node.name,
+            module=f"{zone}.{module_name}",
+            zone=zone,
+            file_path=str(file_path),
+            bases=bases,
+            docstring=ast.get_docstring(class_node),
+            methods=methods,
+            attributes=attributes,
+            is_abstract=False,  # AST无法准确判断
+            is_discoverable=is_discoverable,
+            priority=0,
+            service_type="singleton"
+        )
+    
+    def _analyze_imports(self, tree: ast.AST) -> List[str]:
+        """分析导入语句"""
+        imports = []
+        
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    imports.append(alias.name)
+            elif isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                for alias in node.names:
+                    imports.append(f"{module}.{alias.name}" if module else alias.name)
+        
+        return imports
+    
+    def _is_discoverable_class_quick(self, class_node: ast.ClassDef) -> bool:
+        """快速检查类是否可发现（使用AST）"""
+        # 检查基类
+        base_names = []
+        for base in class_node.bases:
+            if isinstance(base, ast.Name):
+                base_names.append(base.id)
+        
+        discoverable_base_names = {
+            'BaseModule', 'DiscoverableModule', 'FactoryModule', 
+            'ServiceModule', 'TradingModule'
+        }
+        
+        if any(base in discoverable_base_names for base in base_names):
+            return True
+        
+        # 检查装饰器
+        for decorator in class_node.decorator_list:
+            if isinstance(decorator, ast.Name):
+                if decorator.id in ['discoverable', 'trading_module']:
+                    return True
+            elif isinstance(decorator, ast.Call):
+                if isinstance(decorator.func, ast.Name) and decorator.func.id in ['discoverable', 'trading_module']:
+                    return True
+        
+        return False
+    
+    def deep_scan(self, use_cache: bool = True) -> Dict[str, List[ModuleInfo]]:
+        """执行深度扫描"""
+        start_time = time.time()
+        self.logger.info("🔍 开始深度扫描AOO框架...")
+        self.logger.info(f"📁 扫描根目录: {self.aoo_root}")
+        
+        # 检查缓存
+        if (use_cache and self.cache_enabled and 
+            time.time() - self._last_scan_time < self._cache_ttl and
+            self._scan_cache):
+            
+            # 从缓存重建结果
+            scan_results = {}
+            for cache_key, cache_data in self._scan_cache.items():
+                zone, module_name = cache_key.split('.', 1)
+                if zone not in scan_results:
+                    scan_results[zone] = []
+                scan_results[zone].append(cache_data['module_info'])
+            
+            self.logger.info("📦 使用缓存扫描结果")
+            return scan_results
+        
+        zones = self.discover_zones()
+        scan_results = {}
+        total_modules = 0
+        total_classes = 0
+        total_discoverable = 0
+        total_errors = 0
+        
+        # 并行扫描
+        if self.enable_parallel_scan and len(zones) > 1:
+            scan_results = self._parallel_scan(zones)
+        else:
+            # 串行扫描
+            for zone in zones:
+                self.logger.info(f"📍 扫描区域: {zone}")
+                zone_results = self._scan_zone_modules(zone)
+                
+                if zone_results:
+                    scan_results[zone] = zone_results
+                    total_modules += len(zone_results)
+                    
+                    # 统计
+                    for module_info in zone_results:
+                        total_classes += len(module_info.classes)
+                        total_discoverable += sum(1 for cls in module_info.classes if cls.is_discoverable)
+                        if not module_info.analysis_success:
+                            total_errors += 1
+        
+        # 更新统计
+        scan_time = time.time() - start_time
+        self._update_scan_stats(total_modules, total_classes, total_discoverable, total_errors, scan_time)
+        self._last_scan_time = time.time()
+        
+        self.logger.info(f"📦 深度扫描完成: 总共 {total_modules} 个模块, {total_classes} 个类, {total_discoverable} 个可发现类")
+        self.logger.info(f"⏱️ 扫描耗时: {scan_time:.2f} 秒")
+        
+        return scan_results
+    
+    def _parallel_scan(self, zones: List[str]) -> Dict[str, List[ModuleInfo]]:
+        """并行扫描多个区域"""
+        scan_results = {}
+        
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # 提交所有区域扫描任务
+            future_to_zone = {
+                executor.submit(self._scan_zone_modules, zone): zone 
+                for zone in zones
+            }
+            
+            # 收集结果
+            for future in as_completed(future_to_zone.keys()):
+                zone = future_to_zone[future]
+                try:
+                    zone_results = future.result(timeout=self.scan_timeout)
+                    if zone_results:
+                        scan_results[zone] = zone_results
+                        self.logger.info(f"✅ {zone}区: 发现 {len(zone_results)} 个模块")
+                except Exception as e:
+                    self.logger.error(f"❌ 扫描区域 {zone} 失败: {e}")
+        
+        return scan_results
+    
+    def _scan_zone_modules(self, zone: str) -> List[ModuleInfo]:
+        """扫描单个区域的所有模块"""
+        zone_modules = self.scan_zone(zone)
+        zone_results = []
+        
+        for module_name in zone_modules:
+            self.logger.debug(f"  🔍 分析模块: {module_name}")
+            module_info = self.analyze_module(zone, module_name)
+            zone_results.append(module_info)
+            
+            # 记录发现的可发现类
+            discoverable_classes = [cls for cls in module_info.classes if cls.is_discoverable]
+            if discoverable_classes:
+                class_names = [cls.name for cls in discoverable_classes]
+                self.logger.info(f"    🎯 发现可发现类: {', '.join(class_names)}")
+            
+            if not module_info.analysis_success:
+                self.logger.warning(f"    ⚠️ 模块分析失败: {module_info.error}")
+        
+        return zone_results
+    
+    def _update_scan_stats(self, modules: int, classes: int, discoverable: int, errors: int, scan_time: float):
+        """更新扫描统计"""
+        self._scan_stats['total_scans'] += 1
+        self._scan_stats['total_modules'] += modules
+        self._scan_stats['total_classes'] += classes
+        self._scan_stats['total_discoverable'] += discoverable
+        self._scan_stats['total_errors'] += errors
+        self._scan_stats['total_scan_time'] += scan_time
+    
+    def get_discoverable_classes(self, scan_results: Dict[str, List[ModuleInfo]] = None) -> List[ClassInfo]:
+        """获取所有可发现类"""
+        if scan_results is None:
+            scan_results = self.deep_scan()
+        
+        discoverable_classes = []
+        for zone_modules in scan_results.values():
+            for module_info in zone_modules:
+                discoverable_classes.extend([
+                    cls for cls in module_info.classes 
+                    if cls.is_discoverable
+                ])
+        
+        # 按优先级排序
+        discoverable_classes.sort(key=lambda x: x.priority, reverse=True)
+        return discoverable_classes
+    
+    def generate_discovery_report(self, scan_results: Dict[str, List[ModuleInfo]] = None) -> Dict[str, Any]:
+        """生成发现报告"""
+        if scan_results is None:
+            scan_results = self.deep_scan()
+        
+        discoverable_classes = self.get_discoverable_classes(scan_results)
+        
+        report = {
+            'scan_timestamp': time.time(),
+            'total_zones': len(scan_results),
+            'total_modules': sum(len(modules) for modules in scan_results.values()),
+            'total_classes': sum(len(module_info.classes) for modules in scan_results.values() for module_info in modules),
+            'total_discoverable': len(discoverable_classes),
+            'zones': {},
+            'discoverable_by_zone': {},
+            'performance': {
+                'cache_enabled': self.cache_enabled,
+                'cache_size': len(self._scan_cache),
+                'last_scan_time': self._last_scan_time,
+                'scan_stats': self._scan_stats.copy()
+            }
+        }
+        
+        # 按区域统计
+        for zone, modules in scan_results.items():
+            zone_classes = sum(len(module_info.classes) for module_info in modules)
+            zone_discoverable = sum(
+                1 for module_info in modules 
+                for cls in module_info.classes 
+                if cls.is_discoverable
+            )
+            
+            report['zones'][zone] = {
+                'modules': len(modules),
+                'classes': zone_classes,
+                'discoverable': zone_discoverable
+            }
+            
+            # 可发现类详情
+            zone_discoverable_classes = [
+                cls for module_info in modules 
+                for cls in module_info.classes 
+                if cls.is_discoverable
+            ]
+            
+            report['discoverable_by_zone'][zone] = [
+                {
+                    'name': cls.name,
+                    'module': cls.module,
+                    'priority': cls.priority,
+                    'service_type': cls.service_type
+                }
+                for cls in zone_discoverable_classes
+            ]
+        
+        return report
+    
+    def clear_cache(self):
+        """清空扫描缓存"""
+        self._scan_cache.clear()
+        self.logger.info("扫描缓存已清空")
+    
+    def get_cache_info(self) -> Dict[str, Any]:
+        """获取缓存信息"""
+        return {
+            'enabled': self.cache_enabled,
+            'size': len(self._scan_cache),
+            'ttl': self._cache_ttl,
+            'last_scan': self._last_scan_time,
+            'memory_usage': sum(
+                sys.getsizeof(cache_data) + sys.getsizeof(key)
+                for key, cache_data in self._scan_cache.items()
+            )
+        }
+    
+    def validate_module(self, zone: str, module_name: str) -> Dict[str, Any]:
+        """验证模块的完整性和可用性"""
+        module_info = self.analyze_module(zone, module_name)
+        
+        validation_result = {
+            'module': f"{zone}.{module_name}",
+            'file_exists': Path(module_info.file_path).exists(),
+            'analysis_success': module_info.analysis_success,
+            'has_classes': len(module_info.classes) > 0,
+            'has_discoverable': any(cls.is_discoverable for cls in module_info.classes),
+            'file_size_valid': module_info.file_size <= self.max_file_size,
+            'imports_valid': True,  # 简化验证
+            'errors': []
+        }
+        
+        if not module_info.analysis_success:
+            validation_result['errors'].append(f"分析失败: {module_info.error}")
+        
+        if module_info.file_size > self.max_file_size:
+            validation_result['errors'].append(f"文件大小超过限制: {module_info.file_size} > {self.max_file_size}")
+        
+        validation_result['is_valid'] = (
+            validation_result['file_exists'] and
+            validation_result['analysis_success'] and
+            validation_result['file_size_valid'] and
+            len(validation_result['errors']) == 0
+        )
+        
+        return validation_result
+# 扫描器构建器
+class ScannerBuilder:
+    """扫描器构建器，用于配置和创建扫描器"""
+    
+    def __init__(self):
+        self._config = {
+            'ignore_dirs': {'__pycache__', '.git', 'config', 'logs', 'tests', 'temp', 'backup', 'data'},
+            'ignore_files': {'__init__.py', 'test_', '_test.py', 'conftest.py'},
+            'max_file_size': 10 * 1024 * 1024,
+            'analysis_level': 'detailed',
+            'enable_parallel_scan': True,
+            'max_workers': 8,
+            'cache_enabled': True,
+            'cache_ttl': 600,
+            'scan_timeout': 60
+        }
+    
+    def set_analysis_level(self, level: AnalysisLevel) -> 'ScannerBuilder':
+        """设置分析级别"""
+        self._config['analysis_level'] = level.value
+        return self
+    
+    def set_parallel_scan(self, enabled: bool, max_workers: int = None) -> 'ScannerBuilder':
+        """设置并行扫描"""
+        self._config['enable_parallel_scan'] = enabled
+        if max_workers is not None:
+            self._config['max_workers'] = max_workers
+        return self
+    
+    def set_cache(self, enabled: bool, ttl: int = None) -> 'ScannerBuilder':
+        """设置缓存"""
+        self._config['cache_enabled'] = enabled
+        if ttl is not None:
+            self._config['cache_ttl'] = ttl
+        return self
+    
+    def add_ignore_dirs(self, *dirs: str) -> 'ScannerBuilder':
+        """添加忽略目录"""
+        self._config['ignore_dirs'].update(dirs)
+        return self
+    
+    def add_ignore_files(self, *files: str) -> 'ScannerBuilder':
+        """添加忽略文件"""
+        self._config['ignore_files'].update(files)
+        return self
+    
+    def build(self, aoo_root: str, config_manager=None) -> ModuleScanner:
+        """构建扫描器实例"""
+        scanner = ModuleScanner(aoo_root, config_manager)
+        
+        # 应用配置
+        for key, value in self._config.items():
+            if hasattr(scanner, key):
+                setattr(scanner, key, value)
+        
+        return scanner
+
+
+class ScanningError(Exception):
+    """扫描错误异常"""
+    pass
+
+
+class ModuleAnalysisError(ScanningError):
+    """模块分析错误异常"""
+    pass
