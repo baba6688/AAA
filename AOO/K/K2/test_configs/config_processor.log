@@ -1,0 +1,11 @@
+2025-11-06 01:16:42,428 - ModuleConfigurationProcessor - INFO - 模块配置处理器初始化完成
+2025-11-06 01:16:42,428 - ModuleConfigurationProcessor - INFO - 开始初始化模块配置处理器...
+2025-11-06 01:16:42,428 - ModuleConfigurationProcessor - INFO - 已加载 2 个内置模板
+2025-11-06 01:16:42,446 - ModuleConfigurationProcessor - INFO - 发现 0 个配置文件
+2025-11-06 01:16:42,446 - ModuleConfigurationProcessor - INFO - 模块配置处理器初始化完成
+2025-11-06 01:16:42,446 - ModuleConfigurationProcessor - INFO - 配置事件: load_success, 配置ID: test_config, 数据: {'action': 'create'}
+2025-11-06 01:16:42,446 - ModuleConfigurationProcessor - INFO - 创建配置成功: test_config
+2025-11-06 01:16:42,447 - ModuleConfigurationProcessor - INFO - 配置事件: update_success, 配置ID: test_config, 数据: {'action': 'update', 'old_data': {'name': '测试配置', 'value': 100, 'enabled': True}, 'new_data': {'value': 200}}
+2025-11-06 01:16:42,447 - ModuleConfigurationProcessor - INFO - 更新配置成功: test_config
+2025-11-06 01:16:42,447 - ModuleConfigurationProcessor - INFO - 开始关闭模块配置处理器...
+2025-11-06 01:16:42,459 - ModuleConfigurationProcessor - INFO - 模块配置处理器已关闭

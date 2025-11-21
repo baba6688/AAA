@@ -1,0 +1,273 @@
+{
+  "manual_info": {
+    "title": "MyApp用户手册",
+    "version": "2.1.0",
+    "author": "MyApp开发团队",
+    "description": "MyApp是一款功能强大的应用程序",
+    "introduction": "欢迎使用MyApp！本手册将帮助您快速掌握应用程序的各项功能。"
+  },
+  "content_structure": {
+    "sections": {
+      "778ec8f9-7943-42d3-875b-ab9da769282a": {
+        "id": "778ec8f9-7943-42d3-875b-ab9da769282a",
+        "title": "产品概述",
+        "content": "MyApp是一款创新的应用程序，旨在帮助用户提高工作效率。\n\n## 主要特性\n- 直观易用的界面设计\n- 强大的数据处理能力\n- 灵活的扩展机制\n- 完善的安全保护\n\n## 适用场景\n- 个人办公自动化\n- 小团队协作\n- 数据分析和可视化\n- 项目管理",
+        "level": 1,
+        "order": 0,
+        "parent_id": null,
+        "metadata": null
+      },
+      "e22c78dd-39ff-44a0-a609-ab3c4acb47f4": {
+        "id": "e22c78dd-39ff-44a0-a609-ab3c4acb47f4",
+        "title": "系统要求",
+        "content": "在安装MyApp之前，请确保您的系统满足以下要求：\n\n## 操作系统\n- Windows 10 或更高版本\n- macOS 10.15 或更高版本\n- Ubuntu 18.04 或更高版本\n\n## 硬件要求\n- 处理器：Intel i5 或 AMD 同等级别以上\n- 内存：8GB RAM 或更多\n- 存储空间：至少 2GB 可用空间\n- 显卡：支持 DirectX 11 或 OpenGL 3.3",
+        "level": 1,
+        "order": 1,
+        "parent_id": null,
+        "metadata": null
+      },
+      "6fe2f567-dd96-4f03-bc3f-5017db1a0e05": {
+        "id": "6fe2f567-dd96-4f03-bc3f-5017db1a0e05",
+        "title": "安装指南",
+        "content": "本章节将详细介绍如何在不同操作系统上安装MyApp。\n\n我们提供多种安装方式，请根据您的需求选择合适的安装方法。",
+        "level": 1,
+        "order": 2,
+        "parent_id": null,
+        "metadata": null
+      },
+      "7ed4bb98-cf46-445a-83c1-c9e5bc75025d": {
+        "id": "7ed4bb98-cf46-445a-83c1-c9e5bc75025d",
+        "title": "Windows安装",
+        "content": "1. 下载Windows版本的安装程序\n2. 双击运行安装文件\n3. 按照安装向导提示完成安装\n4. 启动应用程序",
+        "level": 2,
+        "order": 3,
+        "parent_id": "6fe2f567-dd96-4f03-bc3f-5017db1a0e05",
+        "metadata": null
+      },
+      "ed8dbf2e-c01f-4991-af0b-7852dfab5e30": {
+        "id": "ed8dbf2e-c01f-4991-af0b-7852dfab5e30",
+        "title": "macOS安装",
+        "content": "1. 下载macOS版本的.dmg文件\n2. 打开.dmg文件并拖拽到应用程序文件夹\n3. 从启动台启动应用程序\n4. 首次运行时在系统偏好设置中允许运行",
+        "level": 2,
+        "order": 4,
+        "parent_id": "6fe2f567-dd96-4f03-bc3f-5017db1a0e05",
+        "metadata": null
+      },
+      "f12be779-81f3-4b3b-a33a-79e0eb92eb7b": {
+        "id": "f12be779-81f3-4b3b-a33a-79e0eb92eb7b",
+        "title": "使用说明",
+        "content": "本章节将介绍MyApp的基本使用方法，包括界面介绍和核心功能。",
+        "level": 1,
+        "order": 5,
+        "parent_id": null,
+        "metadata": null
+      },
+      "f78e2ad4-885b-4d62-9340-76db6609a175": {
+        "id": "f78e2ad4-885b-4d62-9340-76db6609a175",
+        "title": "界面介绍",
+        "content": "MyApp采用现代化的界面设计，主要包含以下区域：\n\n## 主菜单栏\n包含文件、编辑、视图、工具、帮助等菜单\n\n## 工具栏\n提供常用功能的快捷按钮\n\n## 工作区\n显示当前打开的文档或项目\n\n## 状态栏\n显示当前操作状态和系统信息",
+        "level": 2,
+        "order": 6,
+        "parent_id": "f12be779-81f3-4b3b-a33a-79e0eb92eb7b",
+        "metadata": null
+      }
+    },
+    "section_order": [
+      "778ec8f9-7943-42d3-875b-ab9da769282a",
+      "e22c78dd-39ff-44a0-a609-ab3c4acb47f4",
+      "6fe2f567-dd96-4f03-bc3f-5017db1a0e05",
+      "7ed4bb98-cf46-445a-83c1-c9e5bc75025d",
+      "ed8dbf2e-c01f-4991-af0b-7852dfab5e30",
+      "f12be779-81f3-4b3b-a33a-79e0eb92eb7b",
+      "f78e2ad4-885b-4d62-9340-76db6609a175"
+    ]
+  },
+  "multimedia": {
+    "412dd9f5-558e-4de1-9a66-120eec9c4b9e": {
+      "id": "412dd9f5-558e-4de1-9a66-120eec9c4b9e",
+      "type": "image",
+      "path": "demo_media/main_interface.png",
+      "caption": "MyApp主界面截图",
+      "alt_text": "MyApp主界面",
+      "description": "展示MyApp的主要用户界面，包括菜单栏、工具栏和工作区",
+      "tags": [
+        "界面",
+        "截图",
+        "主界面"
+      ]
+    },
+    "1411bfc3-afd5-476c-acd7-7d6c31cedf6c": {
+      "id": "1411bfc3-afd5-476c-acd7-7d6c31cedf6c",
+      "type": "image",
+      "path": "demo_media/installation_wizard.png",
+      "caption": "安装向导界面",
+      "alt_text": "安装向导",
+      "description": "Windows系统下的MyApp安装向导界面",
+      "tags": [
+        "安装",
+        "Windows",
+        "向导"
+      ]
+    }
+  },
+  "guides": {
+    "a3c8097e-a670-4180-b1e8-f059dce4f62a": {
+      "id": "a3c8097e-a670-4180-b1e8-f059dce4f62a",
+      "title": "快速安装指南",
+      "description": "5分钟快速安装MyApp的详细步骤",
+      "steps": [
+        {
+          "description": "下载MyApp安装包",
+          "verification": "确认安装包下载完成并验证文件完整性",
+          "media": "demo_media/step1_download.png"
+        },
+        {
+          "description": "运行安装程序",
+          "verification": "安装程序正常启动，显示安装向导",
+          "media": "demo_media/step2_run.png"
+        },
+        {
+          "description": "选择安装位置",
+          "verification": "确认安装路径并点击下一步",
+          "code": "# 默认安装路径\nC:\\Program Files\\MyApp"
+        },
+        {
+          "description": "完成安装",
+          "verification": "安装完成提示，点击完成按钮",
+          "media": "demo_media/step4_complete.png"
+        }
+      ],
+      "prerequisites": null,
+      "estimated_time": "5分钟",
+      "difficulty_level": "简单"
+    }
+  },
+  "faqs": {
+    "be446955-857c-42f4-a4e8-33dc6c435e9e": {
+      "id": "be446955-857c-42f4-a4e8-33dc6c435e9e",
+      "question": "MyApp支持哪些操作系统？",
+      "answer": "MyApp支持Windows 10及以上版本、macOS 10.15及以上版本，以及Ubuntu 18.04及以上版本。我们正在考虑增加对更多平台的支持。",
+      "category": "系统要求",
+      "tags": [
+        "操作系统",
+        "兼容性",
+        "系统要求"
+      ],
+      "related_sections": null
+    },
+    "a9b35e2b-facc-4284-bac7-f18cf7312f30": {
+      "id": "a9b35e2b-facc-4284-bac7-f18cf7312f30",
+      "question": "如何卸载MyApp？",
+      "answer": "在Windows系统中，可以通过控制面板的程序和功能卸载；在macOS中，直接将应用程序拖拽到废纸篓即可。",
+      "category": "安装",
+      "tags": [
+        "卸载",
+        "安装",
+        "删除"
+      ],
+      "related_sections": null
+    },
+    "6e7322e8-154f-40fb-8e73-fa026ffb2638": {
+      "id": "6e7322e8-154f-40fb-8e73-fa026ffb2638",
+      "question": "忘记许可证密钥怎么办？",
+      "answer": "如果您忘记了许可证密钥，可以联系我们的客服团队，提供购买凭证后我们将为您重新发送密钥。",
+      "category": "许可证",
+      "tags": [
+        "许可证",
+        "密钥",
+        "购买"
+      ],
+      "related_sections": null
+    },
+    "255d8a65-3cb1-4616-9b71-11846794cc82": {
+      "id": "255d8a65-3cb1-4616-9b71-11846794cc82",
+      "question": "如何更新到最新版本？",
+      "answer": "MyApp支持自动更新功能。在应用程序中点击帮助菜单，选择检查更新即可。也可以访问官网下载最新版本。",
+      "category": "更新",
+      "tags": [
+        "更新",
+        "版本",
+        "升级"
+      ],
+      "related_sections": null
+    },
+    "16da316e-e43a-4709-b776-158654d9fa66": {
+      "id": "16da316e-e43a-4709-b776-158654d9fa66",
+      "question": "MyApp是否支持多语言？",
+      "answer": "是的，MyApp支持中文、英文、日文等多种语言。您可以在设置中切换界面语言。",
+      "category": "功能",
+      "tags": [
+        "多语言",
+        "国际化",
+        "语言"
+      ],
+      "related_sections": null
+    }
+  },
+  "feedbacks": {
+    "96505e57-4edb-4d32-8710-e118e5db7749": {
+      "id": "96505e57-4edb-4d32-8710-e118e5db7749",
+      "section_id": "778ec8f9-7943-42d3-875b-ab9da769282a",
+      "feedback_type": "suggestion",
+      "content": "建议增加暗色主题支持，对长时间使用的用户更友好",
+      "rating": 4,
+      "contact_info": "user1@example.com",
+      "timestamp": "2025-11-06T03:56:45.849803",
+      "status": "pending"
+    },
+    "5b887326-8655-43da-b064-0b38bfa0ab82": {
+      "id": "5b887326-8655-43da-b064-0b38bfa0ab82",
+      "section_id": "6fe2f567-dd96-4f03-bc3f-5017db1a0e05",
+      "feedback_type": "question",
+      "content": "安装过程中出现错误代码500，请问如何解决？",
+      "rating": null,
+      "contact_info": "user2@example.com",
+      "timestamp": "2025-11-06T03:56:45.849816",
+      "status": "pending"
+    },
+    "3e8cc8e1-3553-492f-9f48-67802d29203d": {
+      "id": "3e8cc8e1-3553-492f-9f48-67802d29203d",
+      "section_id": "f12be779-81f3-4b3b-a33a-79e0eb92eb7b",
+      "feedback_type": "praise",
+      "content": "界面设计很棒，操作很直观，非常喜欢！",
+      "rating": 5,
+      "contact_info": "user3@example.com",
+      "timestamp": "2025-11-06T03:56:45.849823",
+      "status": "pending"
+    }
+  },
+  "translations": {
+    "en-US": {
+      "产品概述": "Product Overview",
+      "系统要求": "System Requirements",
+      "安装指南": "Installation Guide",
+      "使用说明": "User Guide",
+      "常见问题": "FAQ"
+    }
+  },
+  "versions": [
+    {
+      "version": "2.1.0",
+      "description": "新增多语言支持，改进用户界面，优化安装流程",
+      "author": "MyApp开发团队",
+      "timestamp": "2025-11-06T03:56:45.849832",
+      "changes": [
+        {
+          "type": "feature",
+          "description": "添加中文、英文、日文界面支持",
+          "timestamp": "2025-11-06T03:56:45.849835"
+        },
+        {
+          "type": "improvement",
+          "description": "优化安装向导的用户体验",
+          "timestamp": "2025-11-06T03:56:45.849838"
+        },
+        {
+          "type": "bugfix",
+          "description": "修复特定系统下的兼容性问题",
+          "timestamp": "2025-11-06T03:56:45.849840"
+        }
+      ]
+    }
+  ]
+}

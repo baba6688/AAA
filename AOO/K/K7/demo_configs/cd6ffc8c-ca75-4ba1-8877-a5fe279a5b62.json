@@ -1,0 +1,24 @@
+{
+  "id": "cd6ffc8c-ca75-4ba1-8877-a5fe279a5b62",
+  "name": "自动更新配置",
+  "description": null,
+  "version": "1.0.0",
+  "created_at": "2025-11-06 01:19:48.738165",
+  "updated_at": "2025-11-06 01:19:48.738166",
+  "status": "ConfigurationStatus.VALIDATED",
+  "metadata": {},
+  "model_config_id": "51670733-4172-4d4b-bca0-65d4884c8c20",
+  "update_strategy": {
+    "type": "performance_based",
+    "trigger_metrics": [
+      "accuracy",
+      "f1_score"
+    ]
+  },
+  "version_management": {},
+  "rollback_mechanism": {},
+  "update_frequency": "manual",
+  "auto_update": false,
+  "update_criteria": {},
+  "notification_config": {}
+}

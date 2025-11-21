@@ -1,0 +1,47 @@
+{
+  "data_sources": {},
+  "schemas": {},
+  "partitions": {},
+  "indexes": {},
+  "backups": [],
+  "storage_nodes": {
+    "node1": {
+      "config": {
+        "host": "192.168.1.10",
+        "port": 5432,
+        "type": "primary"
+      },
+      "status": "active",
+      "added_at": "2025-11-05T23:52:35.425394"
+    },
+    "node2": {
+      "config": {
+        "host": "192.168.1.11",
+        "port": 5432,
+        "type": "replica"
+      },
+      "status": "active",
+      "added_at": "2025-11-05T23:52:35.444502"
+    },
+    "node3": {
+      "config": {
+        "host": "192.168.1.12",
+        "port": 5432,
+        "type": "analytics"
+      },
+      "status": "active",
+      "added_at": "2025-11-05T23:52:35.459319"
+    }
+  },
+  "access_control": {},
+  "config": {
+    "warehouse_id": "management_warehouse",
+    "base_path": "./management_test",
+    "max_connections": 100,
+    "cache_size": 1000,
+    "enable_compression": true,
+    "compression_type": "gzip",
+    "enable_encryption": false,
+    "backup_retention_days": 30
+  }
+}

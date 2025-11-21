@@ -1,0 +1,16 @@
+[
+  {
+    "timestamp": "2025-11-05T23:50:24.203786",
+    "user_id": "test_user",
+    "resource": "users",
+    "action": "read",
+    "result": "denied"
+  },
+  {
+    "timestamp": "2025-11-05T23:51:12.758210",
+    "user_id": "test_user",
+    "resource": "users",
+    "action": "read",
+    "result": "success"
+  }
+]

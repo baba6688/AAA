@@ -1,0 +1,77 @@
+{
+  "data_sources": {
+    "sales_database": {
+      "name": "sales_database",
+      "type": "DataSourceType.DATABASE",
+      "connection_string": "postgresql://user:pass@localhost/sales",
+      "schema": "public",
+      "tables": [
+        "orders",
+        "customers",
+        "products"
+      ],
+      "credentials": {
+        "username": "sales_user",
+        "password": "secure_pass"
+      },
+      "metadata": {
+        "version": "2.1",
+        "region": "us-east-1"
+      },
+      "last_updated": "2025-11-05 23:52:34.284214"
+    }
+  },
+  "schemas": {
+    "orders": {
+      "table_name": "orders",
+      "columns": {
+        "order_id": "int",
+        "customer_id": "int",
+        "product_id": "int",
+        "order_date": "datetime",
+        "amount": "float",
+        "status": "string"
+      },
+      "primary_key": [
+        "order_id"
+      ],
+      "foreign_keys": {
+        "customer_id": "customers.customer_id"
+      },
+      "constraints": [
+        "CHECK (amount > 0)",
+        "CHECK (status IN ('pending', 'completed', 'cancelled'))"
+      ],
+      "indexes": []
+    }
+  },
+  "partitions": {},
+  "indexes": {
+    "orders": [
+      {
+        "name": "orders_customer_idx",
+        "table": "orders",
+        "columns": [
+          "customer_id"
+        ],
+        "type": "IndexType.BTREE",
+        "unique": false,
+        "size": 2048,
+        "created_at": "2025-11-05 23:52:34.315360"
+      }
+    ]
+  },
+  "backups": [],
+  "storage_nodes": {},
+  "access_control": {},
+  "config": {
+    "warehouse_id": "company_warehouse",
+    "base_path": "./company_warehouse",
+    "max_connections": 100,
+    "cache_size": 1000,
+    "enable_compression": true,
+    "compression_type": "gzip",
+    "enable_encryption": false,
+    "backup_retention_days": 30
+  }
+}

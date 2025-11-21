@@ -1,0 +1,25 @@
+{
+  "id": "a3701b15-1169-44bf-babe-22e0cc186563",
+  "name": "标准验证配置",
+  "description": null,
+  "version": "1.0.0",
+  "created_at": "2025-11-06 01:19:48.699967",
+  "updated_at": "2025-11-06 01:19:48.699968",
+  "status": "ConfigurationStatus.VALIDATED",
+  "metadata": {},
+  "training_config_id": "5c1c9703-660f-4f1d-832d-273133560e96",
+  "validation_data": {
+    "source": "mnist_validation"
+  },
+  "validation_metrics": [
+    "accuracy",
+    "precision",
+    "recall",
+    "f1_score"
+  ],
+  "validation_strategy": {},
+  "cross_validation": {},
+  "validation_split": 0.2,
+  "stratified_split": false,
+  "custom_metrics": {}
+}

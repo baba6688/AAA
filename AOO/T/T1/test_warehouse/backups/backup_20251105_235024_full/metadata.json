@@ -1,0 +1,57 @@
+{
+  "data_sources": {
+    "test_db": {
+      "name": "test_db",
+      "type": "DataSourceType.DATABASE",
+      "connection_string": "sqlite:///test.db",
+      "schema": "public",
+      "tables": [
+        "users",
+        "orders"
+      ],
+      "credentials": {
+        "username": "test",
+        "password": "test"
+      },
+      "metadata": {
+        "version": "1.0"
+      },
+      "last_updated": "2025-11-05 23:50:22.089997"
+    }
+  },
+  "schemas": {
+    "users": {
+      "table_name": "users",
+      "columns": {
+        "id": "int",
+        "name": "string",
+        "email": "string"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": {},
+      "constraints": [
+        "UNIQUE(email)"
+      ],
+      "indexes": []
+    }
+  },
+  "partitions": {},
+  "indexes": {
+    "users": [
+      {
+        "name": "users_email_idx",
+        "table": "users",
+        "columns": [
+          "email"
+        ],
+        "type": "IndexType.BTREE",
+        "unique": true,
+        "size": 1024,
+        "created_at": "2025-11-05 23:50:22.092521"
+      }
+    ]
+  },
+  "backups": []
+}

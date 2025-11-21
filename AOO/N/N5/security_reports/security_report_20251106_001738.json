@@ -1,0 +1,403 @@
+{
+  "report_id": "security_report_20251106_001738",
+  "report_type": "detailed",
+  "generated_at": "2025-11-06T00:17:38.883311",
+  "period": {
+    "start": "2025-10-07T00:17:38.861366",
+    "end": "2025-11-06T00:17:38.861371"
+  },
+  "summary": {},
+  "details": {
+    "daily_event_trend": {
+      "2025-11-05": 2,
+      "2025-11-04": 3,
+      "2025-11-02": 3,
+      "2025-10-29": 1,
+      "2025-11-01": 1,
+      "2025-10-31": 3,
+      "2025-10-30": 4,
+      "2025-11-03": 3
+    },
+    "top_source_ips": {
+      "192.168.52.162": 1,
+      "192.168.209.8": 1,
+      "192.168.115.155": 1,
+      "192.168.121.35": 1,
+      "192.168.150.176": 1,
+      "192.168.67.92": 1,
+      "192.168.232.1": 1,
+      "192.168.56.27": 1,
+      "192.168.197.6": 1,
+      "192.168.119.191": 1
+    },
+    "top_users": {
+      "user4": 3,
+      "user16": 2,
+      "user1": 2,
+      "user2": 2,
+      "user6": 2,
+      "user18": 1,
+      "user8": 1,
+      "user10": 1,
+      "user14": 1,
+      "user12": 1
+    },
+    "event_timeline": [
+      {
+        "event_id": "441bc2fdb598cb8e",
+        "event_type": "SecurityEventType.DATA_BREACH",
+        "source_ip": "192.168.52.162",
+        "target_ip": "10.0.122.121",
+        "user_id": "user4",
+        "timestamp": "2025-11-05 07:17:35.732303",
+        "description": "Data Breach - 示例事件 1",
+        "severity": "ThreatLevel.CRITICAL",
+        "metadata": {
+          "example": true,
+          "event_index": 0,
+          "random_factor": 0.7335849942117488
+        },
+        "raw_data": "Raw log data for event 1: data_breach from 192.168.52.162"
+      },
+      {
+        "event_id": "20a9b0427c6407b5",
+        "event_type": "SecurityEventType.DATA_BREACH",
+        "source_ip": "192.168.209.8",
+        "target_ip": "10.0.91.24",
+        "user_id": "user16",
+        "timestamp": "2025-11-04 20:17:35.732328",
+        "description": "Data Breach - 示例事件 2",
+        "severity": "ThreatLevel.CRITICAL",
+        "metadata": {
+          "example": true,
+          "event_index": 1,
+          "random_factor": 0.07840619061979448
+        },
+        "raw_data": "Raw log data for event 2: data_breach from 192.168.209.8"
+      },
+      {
+        "event_id": "cea5b3c5dcad65a4",
+        "event_type": "SecurityEventType.AUTHORIZATION_VIOLATION",
+        "source_ip": "192.168.115.155",
+        "target_ip": "10.0.246.196",
+        "user_id": "user18",
+        "timestamp": "2025-11-02 00:17:35.732339",
+        "description": "Authorization Violation - 示例事件 3",
+        "severity": "ThreatLevel.HIGH",
+        "metadata": {
+          "example": true,
+          "event_index": 2,
+          "random_factor": 0.9590274920369998
+        },
+        "raw_data": "Raw log data for event 3: authorization_violation from 192.168.115.155"
+      },
+      {
+        "event_id": "2f08b12b482d83f3",
+        "event_type": "SecurityEventType.AUTHENTICATION_FAILURE",
+        "source_ip": "192.168.121.35",
+        "target_ip": "10.0.84.183",
+        "user_id": "user8",
+        "timestamp": "2025-10-29 23:17:35.732346",
+        "description": "Authentication Failure - 示例事件 4",
+        "severity": "ThreatLevel.HIGH",
+        "metadata": {
+          "example": true,
+          "event_index": 3,
+          "random_factor": 0.03290173820215769
+        },
+        "raw_data": "Raw log data for event 4: authentication_failure from 192.168.121.35"
+      },
+      {
+        "event_id": "9b9b81c66af639b5",
+        "event_type": "SecurityEventType.MALWARE_DETECTION",
+        "source_ip": "192.168.150.176",
+        "target_ip": "10.0.4.13",
+        "user_id": "user16",
+        "timestamp": "2025-11-02 05:17:35.732353",
+        "description": "Malware Detection - 示例事件 5",
+        "severity": "ThreatLevel.CRITICAL",
+        "metadata": {
+          "example": true,
+          "event_index": 4,
+          "random_factor": 0.2836205714791069
+        },
+        "raw_data": "Raw log data for event 5: malware_detection from 192.168.150.176"
+      },
+      {
+        "event_id": "b8f860ee29bf0502",
+        "event_type": "SecurityEventType.MALWARE_DETECTION",
+        "source_ip": "192.168.67.92",
+        "target_ip": "10.0.157.248",
+        "user_id": "user1",
+        "timestamp": "2025-11-01 07:17:35.732360",
+        "description": "Malware Detection - 示例事件 6",
+        "severity": "ThreatLevel.MEDIUM",
+        "metadata": {
+          "example": true,
+          "event_index": 5,
+          "random_factor": 0.06486409742716348
+        },
+        "raw_data": "Raw log data for event 6: malware_detection from 192.168.67.92"
+      },
+      {
+        "event_id": "67d05cf046d7cc50",
+        "event_type": "SecurityEventType.MALWARE_DETECTION",
+        "source_ip": "192.168.232.1",
+        "target_ip": "10.0.157.210",
+        "user_id": "user2",
+        "timestamp": "2025-10-31 03:17:35.732366",
+        "description": "Malware Detection - 示例事件 7",
+        "severity": "ThreatLevel.HIGH",
+        "metadata": {
+          "example": true,
+          "event_index": 6,
+          "random_factor": 0.9585000766729084
+        },
+        "raw_data": "Raw log data for event 7: malware_detection from 192.168.232.1"
+      },
+      {
+        "event_id": "a34eafe2a6f9aad5",
+        "event_type": "SecurityEventType.INTRUSION_ATTEMPT",
+        "source_ip": "192.168.56.27",
+        "target_ip": "10.0.173.3",
+        "user_id": "user10",
+        "timestamp": "2025-10-30 13:17:35.732372",
+        "description": "Intrusion Attempt - 示例事件 8",
+        "severity": "ThreatLevel.MEDIUM",
+        "metadata": {
+          "example": true,
+          "event_index": 7,
+          "random_factor": 0.8116511333868476
+        },
+        "raw_data": "Raw log data for event 8: intrusion_attempt from 192.168.56.27"
+      },
+      {
+        "event_id": "54716ad12435b969",
+        "event_type": "SecurityEventType.AUTHENTICATION_FAILURE",
+        "source_ip": "192.168.197.6",
+        "target_ip": "10.0.106.16",
+        "user_id": "user14",
+        "timestamp": "2025-11-03 14:17:35.732381",
+        "description": "Authentication Failure - 示例事件 9",
+        "severity": "ThreatLevel.MEDIUM",
+        "metadata": {
+          "example": true,
+          "event_index": 8,
+          "random_factor": 0.9947014142725163
+        },
+        "raw_data": "Raw log data for event 9: authentication_failure from 192.168.197.6"
+      },
+      {
+        "event_id": "c4c90c9c6db0f8f4",
+        "event_type": "SecurityEventType.AUTHORIZATION_VIOLATION",
+        "source_ip": "192.168.119.191",
+        "target_ip": "10.0.111.81",
+        "user_id": "user12",
+        "timestamp": "2025-10-30 04:17:35.732388",
+        "description": "Authorization Violation - 示例事件 10",
+        "severity": "ThreatLevel.HIGH",
+        "metadata": {
+          "example": true,
+          "event_index": 9,
+          "random_factor": 0.35979548414074747
+        },
+        "raw_data": "Raw log data for event 10: authorization_violation from 192.168.119.191"
+      },
+      {
+        "event_id": "924404a490f416fd",
+        "event_type": "SecurityEventType.MALWARE_DETECTION",
+        "source_ip": "192.168.144.73",
+        "target_ip": "10.0.85.165",
+        "user_id": "user1",
+        "timestamp": "2025-11-03 09:17:35.732394",
+        "description": "Malware Detection - 示例事件 11",
+        "severity": "ThreatLevel.MEDIUM",
+        "metadata": {
+          "example": true,
+          "event_index": 10,
+          "random_factor": 0.19664212624686284
+        },
+        "raw_data": "Raw log data for event 11: malware_detection from 192.168.144.73"
+      },
+      {
+        "event_id": "5fcdc88fdcc1cfb7",
+        "event_type": "SecurityEventType.INTRUSION_ATTEMPT",
+        "source_ip": "192.168.53.27",
+        "target_ip": "10.0.101.217",
+        "user_id": "user19",
+        "timestamp": "2025-10-31 16:17:35.732399",
+        "description": "Intrusion Attempt - 示例事件 12",
+        "severity": "ThreatLevel.CRITICAL",
+        "metadata": {
+          "example": true,
+          "event_index": 11,
+          "random_factor": 0.4595900004328728
+        },
+        "raw_data": "Raw log data for event 12: intrusion_attempt from 192.168.53.27"
+      },
+      {
+        "event_id": "052a43a9e8d3e0c3",
+        "event_type": "SecurityEventType.INTRUSION_ATTEMPT",
+        "source_ip": "192.168.237.103",
+        "target_ip": "10.0.182.3",
+        "user_id": "user3",
+        "timestamp": "2025-10-31 01:17:35.732405",
+        "description": "Intrusion Attempt - 示例事件 13",
+        "severity": "ThreatLevel.MEDIUM",
+        "metadata": {
+          "example": true,
+          "event_index": 12,
+          "random_factor": 0.33391752300676913
+        },
+        "raw_data": "Raw log data for event 13: intrusion_attempt from 192.168.237.103"
+      },
+      {
+        "event_id": "f5170979abf97a36",
+        "event_type": "SecurityEventType.AUTHORIZATION_VIOLATION",
+        "source_ip": "192.168.71.147",
+        "target_ip": "10.0.236.78",
+        "user_id": "user4",
+        "timestamp": "2025-10-30 02:17:35.732410",
+        "description": "Authorization Violation - 示例事件 14",
+        "severity": "ThreatLevel.CRITICAL",
+        "metadata": {
+          "example": true,
+          "event_index": 13,
+          "random_factor": 0.21823091121992733
+        },
+        "raw_data": "Raw log data for event 14: authorization_violation from 192.168.71.147"
+      },
+      {
+        "event_id": "db0b45d96841e213",
+        "event_type": "SecurityEventType.DATA_BREACH",
+        "source_ip": "192.168.223.65",
+        "target_ip": "10.0.122.230",
+        "user_id": "user20",
+        "timestamp": "2025-11-04 13:17:35.732415",
+        "description": "Data Breach - 示例事件 15",
+        "severity": "ThreatLevel.MEDIUM",
+        "metadata": {
+          "example": true,
+          "event_index": 14,
+          "random_factor": 0.9236486560663684
+        },
+        "raw_data": "Raw log data for event 15: data_breach from 192.168.223.65"
+      },
+      {
+        "event_id": "4fe5099eee5a5aee",
+        "event_type": "SecurityEventType.DATA_BREACH",
+        "source_ip": "192.168.129.72",
+        "target_ip": "10.0.31.241",
+        "user_id": "user2",
+        "timestamp": "2025-11-03 13:17:35.732423",
+        "description": "Data Breach - 示例事件 16",
+        "severity": "ThreatLevel.LOW",
+        "metadata": {
+          "example": true,
+          "event_index": 15,
+          "random_factor": 0.7263009699065757
+        },
+        "raw_data": "Raw log data for event 16: data_breach from 192.168.129.72"
+      },
+      {
+        "event_id": "8c99772dcb075a8e",
+        "event_type": "SecurityEventType.MALWARE_DETECTION",
+        "source_ip": "192.168.122.180",
+        "target_ip": "10.0.228.95",
+        "user_id": "user4",
+        "timestamp": "2025-11-05 13:17:35.732430",
+        "description": "Malware Detection - 示例事件 17",
+        "severity": "ThreatLevel.MEDIUM",
+        "metadata": {
+          "example": true,
+          "event_index": 16,
+          "random_factor": 0.9216298729358872
+        },
+        "raw_data": "Raw log data for event 17: malware_detection from 192.168.122.180"
+      },
+      {
+        "event_id": "1df87a44110493da",
+        "event_type": "SecurityEventType.AUTHORIZATION_VIOLATION",
+        "source_ip": "192.168.174.130",
+        "target_ip": "10.0.110.21",
+        "user_id": "user7",
+        "timestamp": "2025-11-04 23:17:35.732436",
+        "description": "Authorization Violation - 示例事件 18",
+        "severity": "ThreatLevel.CRITICAL",
+        "metadata": {
+          "example": true,
+          "event_index": 17,
+          "random_factor": 0.987058918992807
+        },
+        "raw_data": "Raw log data for event 18: authorization_violation from 192.168.174.130"
+      },
+      {
+        "event_id": "c238e7d9e638dc08",
+        "event_type": "SecurityEventType.MALWARE_DETECTION",
+        "source_ip": "192.168.187.247",
+        "target_ip": "10.0.155.131",
+        "user_id": "user6",
+        "timestamp": "2025-11-02 12:17:35.732442",
+        "description": "Malware Detection - 示例事件 19",
+        "severity": "ThreatLevel.LOW",
+        "metadata": {
+          "example": true,
+          "event_index": 18,
+          "random_factor": 0.1154815120323941
+        },
+        "raw_data": "Raw log data for event 19: malware_detection from 192.168.187.247"
+      },
+      {
+        "event_id": "3d2ada834c9c91f6",
+        "event_type": "SecurityEventType.MALWARE_DETECTION",
+        "source_ip": "192.168.216.126",
+        "target_ip": "10.0.209.106",
+        "user_id": "user6",
+        "timestamp": "2025-10-30 02:17:35.732447",
+        "description": "Malware Detection - 示例事件 20",
+        "severity": "ThreatLevel.LOW",
+        "metadata": {
+          "example": true,
+          "event_index": 19,
+          "random_factor": 0.8892808119139408
+        },
+        "raw_data": "Raw log data for event 20: malware_detection from 192.168.216.126"
+      }
+    ],
+    "metrics_detail": [
+      {
+        "metric_name": "auth_failure_rate",
+        "value": 0.0,
+        "threshold": 5.0,
+        "status": "normal",
+        "timestamp": "2025-11-06 00:17:38.151344",
+        "category": "authentication"
+      },
+      {
+        "metric_name": "malware_detection_rate",
+        "value": 50.0,
+        "threshold": 1.0,
+        "status": "critical",
+        "timestamp": "2025-11-06 00:17:38.151353",
+        "category": "malware"
+      },
+      {
+        "metric_name": "system_availability",
+        "value": 100.0,
+        "threshold": 99.9,
+        "status": "normal",
+        "timestamp": "2025-11-06 00:17:38.151359",
+        "category": "availability"
+      },
+      {
+        "metric_name": "data_breach_count",
+        "value": 1.0,
+        "threshold": 0.0,
+        "status": "critical",
+        "timestamp": "2025-11-06 00:17:38.151363",
+        "category": "data_protection"
+      }
+    ]
+  },
+  "recommendations": []
+}

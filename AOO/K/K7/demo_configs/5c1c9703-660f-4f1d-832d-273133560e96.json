@@ -1,0 +1,29 @@
+{
+  "id": "5c1c9703-660f-4f1d-832d-273133560e96",
+  "name": "标准训练配置",
+  "description": null,
+  "version": "1.0.0",
+  "created_at": "2025-11-06 01:19:48.687771",
+  "updated_at": "2025-11-06 01:19:48.687772",
+  "status": "ConfigurationStatus.VALIDATED",
+  "metadata": {},
+  "model_config_id": "51670733-4172-4d4b-bca0-65d4884c8c20",
+  "training_data": {
+    "source": "mnist_dataset",
+    "format": "numpy",
+    "train_split": 0.8
+  },
+  "validation_data": {},
+  "training_parameters": {
+    "batch_size": 32,
+    "epochs": 100,
+    "learning_rate": 0.001
+  },
+  "training_strategy": {},
+  "optimizer": {},
+  "loss_function": {},
+  "learning_rate_schedule": {},
+  "early_stopping": {},
+  "checkpoint_config": {},
+  "distributed_training": {}
+}

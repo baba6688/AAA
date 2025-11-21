@@ -1,0 +1,26 @@
+{
+  "id": "8f62f6dc-4872-4d4b-9197-b6ec5993d429",
+  "name": "标准评估配置",
+  "description": null,
+  "version": "1.0.0",
+  "created_at": "2025-11-06 01:19:48.711988",
+  "updated_at": "2025-11-06 01:19:48.711989",
+  "status": "ConfigurationStatus.VALIDATED",
+  "metadata": {},
+  "model_config_id": "51670733-4172-4d4b-bca0-65d4884c8c20",
+  "evaluation_data": {
+    "source": "mnist_test"
+  },
+  "evaluation_metrics": [
+    "accuracy",
+    "precision",
+    "recall",
+    "f1_score",
+    "auc_roc"
+  ],
+  "evaluation_methods": {},
+  "evaluation_report": {},
+  "benchmark_comparison": {},
+  "performance_thresholds": {},
+  "evaluation_frequency": "daily"
+}

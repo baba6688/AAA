@@ -1,0 +1,29 @@
+{
+  "id": "8b231556-c878-4153-8fff-6bd2602ef581",
+  "name": "测试模型",
+  "description": null,
+  "version": "1.0.0",
+  "created_at": "2025-11-06 01:18:55.804671",
+  "updated_at": "2025-11-06 01:18:55.804673",
+  "status": "ConfigurationStatus.VALIDATED",
+  "metadata": {},
+  "model_type": "classification",
+  "model_architecture": {
+    "type": "simple"
+  },
+  "hyperparameters": {},
+  "input_spec": {
+    "shape": [
+      10
+    ]
+  },
+  "output_spec": {
+    "shape": [
+      2
+    ]
+  },
+  "dependencies": [],
+  "resource_requirements": {},
+  "model_size": null,
+  "inference_time": null
+}

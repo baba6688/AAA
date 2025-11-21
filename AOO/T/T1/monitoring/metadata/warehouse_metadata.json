@@ -1,0 +1,19 @@
+{
+  "data_sources": {},
+  "schemas": {},
+  "partitions": {},
+  "indexes": {},
+  "backups": [],
+  "storage_nodes": {},
+  "access_control": {},
+  "config": {
+    "warehouse_id": "monitoring_warehouse",
+    "base_path": "./monitoring",
+    "max_connections": 100,
+    "cache_size": 1000,
+    "enable_compression": true,
+    "compression_type": "gzip",
+    "enable_encryption": false,
+    "backup_retention_days": 30
+  }
+}

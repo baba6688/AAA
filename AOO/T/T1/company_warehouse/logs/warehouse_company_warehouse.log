@@ -1,0 +1,28 @@
+2025-11-05 23:52:34,284 - DataWarehouseManager_company_warehouse - INFO - 数据仓库管理器 company_warehouse 初始化完成
+2025-11-05 23:52:34,300 - DataWarehouseManager_company_warehouse - INFO - 数据源 sales_database 注册成功
+2025-11-05 23:52:34,312 - DataWarehouseManager_company_warehouse - INFO - 数据模式 orders 注册成功
+2025-11-05 23:52:34,314 - DataWarehouseManager_company_warehouse - ERROR - 数据验证失败: ['列 order_date 类型不匹配: 期望 datetime, 实际 datetime64[ns]']
+2025-11-05 23:52:34,326 - DataWarehouseManager_company_warehouse - INFO - 索引 orders_customer_idx 创建成功
+2025-11-05 23:52:34,326 - DataWarehouseManager_company_warehouse - INFO - 正在关闭数据仓库管理器...
+2025-11-05 23:52:34,336 - DataWarehouseManager_company_warehouse - INFO - 数据仓库管理器已关闭
+2025-11-05 23:52:34,422 - DataWarehouseManager_monitoring_warehouse - INFO - 数据仓库管理器 monitoring_warehouse 初始化完成
+2025-11-05 23:52:34,922 - DataWarehouseManager_monitoring_warehouse - INFO - 正在关闭数据仓库管理器...
+2025-11-05 23:52:34,939 - DataWarehouseManager_monitoring_warehouse - INFO - 数据仓库管理器已关闭
+2025-11-05 23:52:35,026 - DataWarehouseManager_backup_warehouse - INFO - 数据仓库管理器 backup_warehouse 初始化完成
+2025-11-05 23:52:35,027 - DataWarehouseManager_backup_warehouse - ERROR - 数据验证失败: ['表 test_table 的模式未定义']
+2025-11-05 23:52:35,115 - DataWarehouseManager_backup_warehouse - INFO - 备份创建成功: backup_20251105_235235_full
+2025-11-05 23:52:35,115 - DataWarehouseManager_backup_warehouse - INFO - 正在关闭数据仓库管理器...
+2025-11-05 23:52:35,129 - DataWarehouseManager_backup_warehouse - INFO - 数据仓库管理器已关闭
+2025-11-05 23:52:35,211 - DataWarehouseManager_secure_warehouse - INFO - 数据仓库管理器 secure_warehouse 初始化完成
+2025-11-05 23:52:35,228 - DataWarehouseManager_secure_warehouse - INFO - 用户 admin_user 访问控制设置成功
+2025-11-05 23:52:35,240 - DataWarehouseManager_secure_warehouse - INFO - 用户 analyst_user 访问控制设置成功
+2025-11-05 23:52:35,327 - DataWarehouseManager_secure_warehouse - INFO - 正在关闭数据仓库管理器...
+2025-11-05 23:52:35,339 - DataWarehouseManager_secure_warehouse - INFO - 数据仓库管理器已关闭
+2025-11-05 23:52:35,425 - DataWarehouseManager_management_warehouse - INFO - 数据仓库管理器 management_warehouse 初始化完成
+2025-11-05 23:52:35,444 - DataWarehouseManager_management_warehouse - INFO - 存储节点 node1 添加成功
+2025-11-05 23:52:35,459 - DataWarehouseManager_management_warehouse - INFO - 存储节点 node2 添加成功
+2025-11-05 23:52:35,471 - DataWarehouseManager_management_warehouse - INFO - 存储节点 node3 添加成功
+2025-11-05 23:52:35,471 - DataWarehouseManager_management_warehouse - INFO - 开始数据重新分布，策略: performance
+2025-11-05 23:52:36,471 - DataWarehouseManager_management_warehouse - INFO - 数据重新分布完成
+2025-11-05 23:52:36,474 - DataWarehouseManager_management_warehouse - INFO - 正在关闭数据仓库管理器...
+2025-11-05 23:52:36,483 - DataWarehouseManager_management_warehouse - INFO - 数据仓库管理器已关闭

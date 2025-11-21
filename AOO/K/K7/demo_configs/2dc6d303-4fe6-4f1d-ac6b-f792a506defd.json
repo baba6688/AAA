@@ -1,0 +1,23 @@
+{
+  "id": "2dc6d303-4fe6-4f1d-ac6b-f792a506defd",
+  "name": "Kubernetes部署配置",
+  "description": null,
+  "version": "1.0.0",
+  "created_at": "2025-11-06 01:19:48.725576",
+  "updated_at": "2025-11-06 01:19:48.725577",
+  "status": "ConfigurationStatus.VALIDATED",
+  "metadata": {},
+  "model_config_id": "51670733-4172-4d4b-bca0-65d4884c8c20",
+  "deployment_environment": {
+    "namespace": "ml-models",
+    "replicas": 3
+  },
+  "deployment_strategy": {},
+  "deployment_platform": "kubernetes",
+  "scaling_config": {},
+  "monitoring_config": {},
+  "security_config": {},
+  "rollback_config": {},
+  "resource_allocation": {},
+  "deployment_status": "DeploymentStatus.PENDING"
+}

@@ -1,0 +1,6 @@
+2025-11-14 03:16:20,913 - X9.CacheStatusAggregator - INFO - 添加预警规则: 低命中率
+2025-11-14 03:16:20,914 - X9.CacheStatusAggregator - INFO - 添加预警规则: 高内存使用
+2025-11-14 03:16:20,914 - X9.CacheStatusAggregator - INFO - 添加预警规则: 高响应时间
+2025-11-14 03:16:20,914 - X9.CacheStatusAggregator - INFO - 添加预警规则: 错误过多
+2025-11-14 03:16:20,914 - X9.CacheStatusAggregator - INFO - 添加预警规则: 极低命中率
+2025-11-14 03:16:20,914 - X9.CacheStatusAggregator - INFO - 缓存状态聚合器初始化完成

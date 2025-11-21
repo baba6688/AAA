@@ -1,0 +1,47 @@
+{
+  "data_sources": {},
+  "schemas": {},
+  "partitions": {},
+  "indexes": {},
+  "backups": [],
+  "storage_nodes": {},
+  "access_control": {
+    "admin_user": {
+      "orders": [
+        "read",
+        "write",
+        "delete",
+        "admin"
+      ],
+      "customers": [
+        "read",
+        "write"
+      ],
+      "*": [
+        "read"
+      ]
+    },
+    "analyst_user": {
+      "orders": [
+        "read"
+      ],
+      "customers": [
+        "read"
+      ],
+      "reports": [
+        "read",
+        "write"
+      ]
+    }
+  },
+  "config": {
+    "warehouse_id": "secure_warehouse",
+    "base_path": "./secure_test",
+    "max_connections": 100,
+    "cache_size": 1000,
+    "enable_compression": true,
+    "compression_type": "gzip",
+    "enable_encryption": false,
+    "backup_retention_days": 30
+  }
+}
